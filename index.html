@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>EMT-1 紙上兵推 V15 | XABCDE & 危機注入版</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        /* --- 1. Design System (MUJI / Tabletop Style) --- */
+        :root {
+            --bg-color: #E6E2D8; 
+            --paper-color: #FDFBF7;
+            --text-main: #2F2F2F; 
+            --text-sub: #666;  
+            --primary: #2C3E50;
+            --accent: #A93226;    
+            --success: #1E8449;   
+            --crisis: #C0392B;    
+            
+            --radius: 2px;
+            --border: 1px solid #C0B7A8;
+            --shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        body {
+            margin: 0; padding: 0;
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            background-image: repeating-linear-gradient(0deg, transparent, transparent 19px, #D8D4C9 20px);
+            height: 100vh;
+            display: flex; flex-direction: column;
+            overflow: hidden; 
+        }
+
+        /* --- Header --- */
+        header {
+            padding: 12px 16px;
+            background: #F4F3EF;
+            border-bottom: 2px solid #C0B7A8;
+            display: flex; justify-content: space-between; align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            z-index: 10;
+        }
+        h1 { font-size: 1.1rem; font-weight: 700; margin: 0; color: var(--text-main); letter-spacing: 1px; }
+        
+        .mute-btn {
+            background: none; border: 1px solid #999;
+            color: #666; padding: 4px 10px; border-radius: 4px;
+            cursor: pointer; font-size: 0.85rem;
+        }
+        .mute-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+        /* --- Tabs --- */
+        .tab-container {
+            display: flex; padding: 0 16px;
+            background: #F4F3EF;
+            border-bottom: 1px solid #C0B7A8;
+        }
+        .tab {
+            flex: 1; text-align: center; padding: 12px 0;
+            color: #888; cursor: pointer; font-size: 0.95rem; font-weight: 500;
+            border-bottom: 3px solid transparent; transition: all 0.2s;
+        }
+        .tab.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 700; }
+
+        /* --- Main Content --- */
+        main {
+            flex: 1; overflow-y: auto; padding: 20px;
+            max-width: 700px; margin: 0 auto; width: 100%;
+            padding-bottom: 100px;
+            scroll-behavior: smooth;
+        }
+
+        /* --- The "Patient File" Card --- */
+        .file-folder {
+            background: var(--paper-color);
+            border: 1px solid #C0B7A8;
+            border-radius: 4px;
+            box-shadow: 1px 1px 0 rgba(0,0,0,0.05), 3px 3px 0 rgba(0,0,0,0.05);
+            padding: 0;
+            margin-bottom: 20px;
+            overflow: hidden;
+            position: relative;
+            transition: all 0.3s;
+        }
+        
+        .file-folder.crisis-mode {
+            border: 4px solid var(--crisis);
+            box-shadow: 0 0 20px rgba(192, 57, 43, 0.5);
+            animation: shake 0.5s infinite alternate;
+        }
+        
+        .crisis-overlay-msg {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: rgba(192, 57, 43, 0.9); color: white; padding: 20px;
+            font-size: 1.5rem; font-weight: bold; border-radius: 8px; z-index: 20;
+            text-align: center; pointer-events: none; display: none;
+        }
+        .file-folder.crisis-mode .crisis-overlay-msg { display: block; }
+
+        .file-header {
+            background: #F0EFE9;
+            padding: 12px 20px;
+            border-bottom: 2px solid #DCD8CF;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .crisis-mode .file-header { background: #FADBD8; border-bottom-color: #E6B0AA; }
+        
+        .case-id { font-family: 'Roboto Mono', monospace; font-weight: 700; color: #555; letter-spacing: 1px; }
+        .stamp-box { border: 2px dashed #ccc; color: #ccc; padding: 2px 8px; font-size: 0.8rem; transform: rotate(-5deg); font-weight: 700; }
+        .stamp-box.assessed { border-color: var(--accent); color: var(--accent); }
+
+        .file-body { padding: 20px; }
+
+        /* Visual Polaroid */
+        .polaroid {
+            background: #fff; padding: 8px 8px 25px 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            transform: rotate(1deg);
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+        }
+        .polaroid img { width: 100%; height: 160px; object-fit: cover; filter: sepia(10%) contrast(95%); }
+        .polaroid-caption { font-size: 0.9rem; color: #444; margin-top: 8px; font-family: 'Courier New', monospace; }
+
+        /* Investigation Grid */
+        .investigation-grid {
+            display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px;
+            margin-bottom: 10px;
+        }
+        .btn-investigate {
+            background: #fff; border: 1px solid #aaa;
+            padding: 15px 5px; text-align: center; cursor: pointer;
+            border-radius: 2px; transition: all 0.2s;
+            font-size: 0.9rem; color: #444;
+            display: flex; flex-direction: column; align-items: center; gap: 5px;
+        }
+        .btn-investigate:hover { background: #fdfdfd; border-color: var(--primary); }
+        .btn-investigate:disabled { opacity: 0.5; background: #eee; cursor: not-allowed; }
+        .btn-investigate.checked { background: #F4F8F0; border-color: var(--success); color: var(--success); }
+
+        /* GCS Detailed Calculator Style */
+        .gcs-panel {
+            background: #F2F4F4; border: 1px solid #BDC3C7; padding: 15px;
+            margin-bottom: 20px; border-radius: var(--radius); display: none;
+        }
+        .gcs-panel.active { display: block; animation: fadeIn 0.3s; }
+        .gcs-row { margin-bottom: 10px; }
+        .gcs-label { font-size: 0.9rem; font-weight: bold; color: var(--primary); margin-bottom: 5px; display: block; }
+        .gcs-btn-group { display: flex; gap: 5px; flex-wrap: wrap; }
+        .gcs-btn {
+            flex: 1; padding: 8px 5px; border: 1px solid #999; background: #fff;
+            cursor: pointer; font-size: 0.9rem; color: #555;
+        }
+        .gcs-btn:hover { background: #eee; }
+        .gcs-btn.selected { background: var(--primary); color: #fff; border-color: var(--primary); }
+        
+        .gcs-summary {
+            margin-top: 15px; padding-top: 15px; border-top: 1px dashed #ccc;
+            font-family: 'Roboto Mono', monospace; font-size: 1.1rem; text-align: center; font-weight: bold; color: var(--text-main);
+        }
+        
+        .gcs-critical-check {
+            margin-top: 10px; display: flex; gap: 10px; align-items: center; justify-content: center;
+            background: #fff; padding: 10px; border: 1px solid #ddd;
+        }
+        .gcs-confirm-btn {
+            width: 100%; margin-top: 10px; padding: 10px; background: #27AE60; color: white;
+            border: none; cursor: pointer; font-weight: bold;
+        }
+
+        /* Handwriting Log */
+        .notebook-log {
+            background: #fff;
+            border: 1px solid #ddd;
+            padding: 15px;
+            min-height: 120px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: #333;
+            background-image: linear-gradient(#eee 1px, transparent 1px);
+            background-size: 100% 1.6em;
+            margin-bottom: 20px;
+            max-height: 300px; overflow-y: auto;
+        }
+        
+        /* Script Style */
+        .script-line { margin-bottom: 6px; }
+        .script-you { color: #2C3E50; font-weight: bold; }
+        .script-patient { color: #666; font-style: italic; margin-left: 10px; }
+        .script-action { color: #A04000; font-weight: 500; }
+        
+        .note-entry { margin-bottom: 0; white-space: pre-wrap; }
+        .note-highlight { background: rgba(244, 208, 63, 0.2); padding: 0 4px; }
+        .note-crisis { color: var(--crisis); font-weight: bold; background: rgba(192, 57, 43, 0.1); padding: 2px 4px; }
+        .note-feedback { color: #8E44AD; border-left: 3px solid #8E44AD; padding-left: 5px; margin-top: 5px; font-weight: 500;}
+
+        /* Action Buttons */
+        .action-area { border-top: 2px dashed #ddd; padding-top: 20px; }
+        .question-text { font-weight: 700; margin-bottom: 15px; color: var(--primary); }
+        
+        .btn-decision {
+            width: 100%; padding: 14px; margin-bottom: 8px;
+            background: #fff; border: 1px solid #999; border-radius: 3px;
+            font-size: 1rem; text-align: left; cursor: pointer;
+            box-shadow: 0 2px 0 #ccc; transition: transform 0.1s;
+        }
+        .btn-decision:active { transform: translateY(2px); box-shadow: none; }
+        .btn-decision:hover { border-color: var(--primary); }
+        
+        .btn-decision.correct { background: #DFF0D8; border-color: #3C763D; color: #3C763D; }
+        .btn-decision.wrong { background: #F2DEDE; border-color: #A94442; color: #A94442; }
+        .btn-decision.crisis-btn { border-color: var(--crisis); color: var(--crisis); font-weight: bold; }
+
+        /* Roulette Screen */
+        #roulette-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(230, 226, 216, 0.98); z-index: 50;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .spinner-text { font-size: 2rem; font-weight: 700; color: var(--primary); font-family: 'Courier New', monospace; border: 4px solid var(--primary); padding: 10px 20px; transform: rotate(-2deg); }
+
+        /* Crisis Badge */
+        .crisis-badge {
+            display: none;
+            background: var(--crisis); color: white; padding: 4px 12px;
+            font-size: 0.9rem; font-weight: bold; border-radius: 12px;
+            animation: pulse 1s infinite;
+        }
+
+        /* Review Mode */
+        .quiz-card { background: #fff; padding: 20px; border: 1px solid #ccc; margin-bottom: 15px; box-shadow: 2px 2px 0 #ddd; }
+        
+        /* Hint */
+        .hint-toggle { font-size: 0.8rem; color: #888; text-decoration: underline; cursor: pointer; margin-top: 10px; display: inline-block; }
+        .hint-content { display: none; background: #FFFEE0; border: 1px solid #E6DB55; padding: 10px; font-size: 0.9rem; margin-top: 5px; color: #555; }
+
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+        @keyframes shake { 0% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } 100% { transform: translateX(0); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    </style>
+</head>
+<body>
+
+    <!-- Start / Roulette Screen -->
+    <div id="roulette-overlay">
+        <h1 style="color:var(--primary); margin-bottom:20px;">EMT-1 紙上兵推 V15</h1>
+        <p style="color:#666; margin-bottom:30px; font-family:'Courier New'; text-align:center;">
+            沉浸式劇本模擬<br>
+            <span style="font-size:0.8rem; color:var(--crisis);"⚠️ 落實 XABCDE & 動態危機注入</span>
+        </p>
+        <button class="btn-decision" style="width:auto; padding:12px 40px; background:var(--primary); color:#fff; text-align:center;" onclick="app.init()">抽取傷情卡 Draw Case</button>
+    </div>
+
+    <header>
+        <h1>EMT-1 Wargame <span style="font-size:0.7rem; color:#888;">V15</span></h1>
+        <button id="mute-toggle" class="mute-btn" onclick="audioSys.toggleMute()">🔊 音效</button>
+    </header>
+
+    <div class="tab-container">
+        <div id="tab-scenario" class="tab active" onclick="app.switchMode('scenario')">傷情兵推</div>
+        <div id="tab-review" class="tab" onclick="app.switchMode('review')">學理複習</div>
+    </div>
+
+    <main id="app-container">
+        <!-- Content will be injected here -->
+    </main>
+
+    <script>
+        /* =========================================
+           1. DATA: Patient Database
+           ========================================= */
+        const getImg = (text) => `https://placehold.co/600x350/EAE8E2/555555?text=${encodeURIComponent(text)}&font=roboto`;
+
+        const CASES_DB = [
+            {
+                id: "MCI-01", type: "Black",
+                img: getImg("SCENE: Collapsed Structure"),
+                impression: "發現傷患上半身被巨大水泥塊壓住，身體呈現不自然扭曲。",
+                assessments: {
+                    script_voice: `<span class='script-you'>你：</span>「先生先生！聽得到我的聲音嗎？(評估E)」\n<span class='script-patient'>患者：</span>(毫無反應)\n<span class='script-you'>你：</span>「先生！能告訴我發生什麼事嗎？(評估V)」\n<span class='script-patient'>患者：</span>(沒有出聲)\n<span class='script-you'>你：</span>「請動一下手指讓我看到！(評估M)」\n<span class='script-patient'>患者：</span>(完全沒有動作)`,
+                    script_pain: `<span class='script-you'>你：</span>(用力按壓斜方肌)\n<span class='script-patient'>患者：</span>(全身癱軟，無肌肉收縮反應)`,
+                    breathing: "觀察胸部起伏。\n結果：**10秒鐘內沒有觀察到任何起伏 (0次)。**",
+                    pulse: "觸摸頸動脈。\n結果：摸不到脈搏。",
+                    gcs: { e: 1, v: 1, m: 1 },
+                    gcs_exp: "無反應(E1)、無發聲(V1)、無運動(M1)。",
+                    is_critical: true
+                },
+                start_phase: "start_black"
+            },
+            {
+                id: "MCI-02", type: "Red",
+                img: getImg("PATIENT: Clutching Throat"),
+                impression: "男性倒臥在地，雙手緊抓喉嚨，表情極度恐慌 (疑似呼吸道阻塞)。",
+                assessments: {
+                    script_voice: `<span class='script-you'>你：</span>「先生！聽得到嗎？你看著我！(評估E)」\n<span class='script-patient'>患者：</span>(張大眼睛看著你，神情恐慌)\n<span class='script-you'>你：</span>「你叫什麼名字？(評估V)」\n<span class='script-patient'>患者：</span>(張口試圖說話，但只能發出嘶嘶的氣音)\n<span class='script-you'>你：</span>「用力握住我的手！(評估M)」\n<span class='script-patient'>患者：</span>(用力握住你的手)`,
+                    script_pain: `<span class='script-you'>你：</span>(不需痛刺激，患者清醒可遵從指令)`,
+                    breathing: "聽診呼吸音。\n結果：聽到喘鳴聲 (Stridor)。**呼吸極度費力淺快，觀察 10 秒約 6 下。**",
+                    pulse: "橈動脈：快而弱，約 130/min。",
+                    gcs: { e: 4, v: 1, m: 6 },
+                    gcs_exp: "自動張眼(E4)；氣道阻塞無法發聲視為(V1)或依插管定義為T，此處評V1；能遵從握手指令(M6)。",
+                    is_critical: true
+                },
+                start_phase: "start_red_airway"
+            },
+            {
+                id: "MCI-03", type: "Red",
+                img: getImg("SCENE: Massive Bleeding"),
+                impression: "女性尖叫呼救，右大腿根部有大量鮮血噴濺 (Arterial Spray)。",
+                assessments: {
+                    script_voice: `<span class='script-you'>你：</span>「小姐！你還好嗎？(評估E)」\n<span class='script-patient'>患者：</span>(持續看著你尖叫)\n<span class='script-you'>你：</span>「快告訴我哪裡痛？(評估V)」\n<span class='script-patient'>患者：</span>「救命！我的腳！好多血！」\n<span class='script-you'>你：</span>「快！用雙手用力按住傷口！(評估M)」\n<span class='script-patient'>患者：</span>(立刻用雙手去壓住大腿根部)`,
+                    script_pain: `<span class='script-you'>你：</span>(不需痛刺激)`,
+                    breathing: "觀察胸部。\n結果：**呼吸深快 (過度換氣)。觀察 10 秒約 5 下。**",
+                    pulse: "橈動脈：摸得到但很急促 (140/min)。",
+                    gcs: { e: 4, v: 5, m: 6 },
+                    gcs_exp: "自動張眼(E4)；對答如流(V5)；能聽令按壓傷口(M6)。",
+                    is_critical: true
+                },
+                start_phase: "start_red_amp"
+            },
+            {
+                id: "MCI-04", type: "Red",
+                img: getImg("PATIENT: Trapped Legs"),
+                impression: "男性下半身被瓦礫堆壓住，臉色蒼白，眼神渙散。",
+                assessments: {
+                    script_voice: `<span class='script-you'>你：</span>「先生！先生！(評估E)」\n<span class='script-patient'>患者：</span>(原本閉眼，聽到呼喚後緩緩張開眼)\n<span class='script-you'>你：</span>「知道發生什麼事嗎？(評估V)」\n<span class='script-patient'>患者：</span>(口中發出呻吟與無法辨識的單字)\n<span class='script-you'>你：</span>「把手舉起來給我看！(評估M)」\n<span class='script-patient'>患者：</span>(眼神渙散，手沒有舉起來，無法遵從指令)`,
+                    script_pain: `<span class='script-you'>你：</span>(按壓斜方肌給予疼痛刺激)\n<span class='script-patient'>患者：</span>(發出哀號，手快速縮回閃避)`,
+                    breathing: "觀察胸部。\n結果：**呼吸淺快不規則。觀察 10 秒約 4-5 下。**",
+                    pulse: "橈動脈：微弱，約 120/min。",
+                    gcs: { e: 3, v: 2, m: 4 },
+                    gcs_exp: "呼喚張眼(E3)；無法理解的聲音(V2)；疼痛回縮閃避(M4)。",
+                    is_critical: true
+                },
+                start_phase: "start_red_crush"
+            },
+            {
+                id: "MCI-05", type: "Yellow",
+                img: getImg("PATIENT: Holding Arm"),
+                impression: "女性坐在地上抱著左手臂，表情痛苦。",
+                assessments: {
+                    script_voice: `<span class='script-you'>你：</span>「小姐，我看妳手受傷了？(評估E)」\n<span class='script-patient'>患者：</span>(看著你點頭)\n<span class='script-you'>你：</span>「除了手還有哪裡不舒服嗎？(評估V)」\n<span class='script-patient'>患者：</span>「只有手...手好像斷了，很痛。」\n<span class='script-you'>你：</span>「右手沒受傷吧？動動手指給我看。(評估M)」\n<span class='script-patient'>患者：</span>(照指令活動右手手指)`,
+                    script_pain: `<span class='script-you'>你：</span>(不需痛刺激)`,
+                    breathing: "觀察呼吸。\n結果：**呼吸平穩。觀察 10 秒約 3 下。**",
+                    pulse: "橈動脈：強而有力，約 90/min。",
+                    gcs: { e: 4, v: 5, m: 6 },
+                    gcs_exp: "清醒且能遵從指令 (E4V5M6)。",
+                    is_critical: false
+                },
+                start_phase: "start_yellow_fracture"
+            },
+            {
+                id: "BUS-01", type: "Red",
+                img: getImg("PATIENT: Unconscious"),
+                impression: "男性倒在碎玻璃中，無意識，發出鼾音。",
+                assessments: {
+                    script_voice: `<span class='script-you'>你：</span>「先生！先生！聽得到嗎？(評估E)」\n<span class='script-patient'>患者：</span>(毫無反應，眼睛緊閉)\n<span class='script-you'>你：</span>「先生！請你把手動一下！(評估M)」\n<span class='script-patient'>患者：</span>(完全沒有動作)`,
+                    script_pain: `<span class='script-you'>你：</span>(用力捏胸大肌給予強烈痛刺激)\n<span class='script-patient'>患者：</span>(雙手僵硬伸直，手腕向外旋轉)`,
+                    breathing: "觀察呼吸。\n結果：**呼吸慢且深。觀察 10 秒約 2 下。**",
+                    pulse: "橈動脈：緩慢有力，約 50/min (IICP徵象)。",
+                    gcs: { e: 1, v: 1, m: 2 },
+                    gcs_exp: "痛刺激不張眼(E1)；插管或無聲(V1)；去大腦伸張(M2)。",
+                    is_critical: true
+                },
+                start_phase: "start_red_airway_snore"
+            }
+        ];
+
+        /* =========================================
+           2. APP LOGIC
+           ========================================= */
+
+        const app = {
+            state: {
+                case: null,
+                history: [],
+                phaseKey: null,
+                availableCases: [],
+                investigated: { voice: false, pain: false, breathing: false, pulse: false },
+                gcsChecked: false,
+                isCrisisActive: false,
+                gcsInput: { e: 0, v: 0, m: 0, critical: null },
+                x_treated: false
+            },
+
+            init: function() {
+                audioSys.init();
+                this.state.availableCases = [...CASES_DB];
+                this.startRoulette();
+            },
+
+            switchMode: function(mode) {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.getElementById(`tab-${mode}`).classList.add('active');
+                
+                if (mode === 'scenario') {
+                    if(!this.state.case && this.state.availableCases.length > 0) this.startRoulette();
+                    else if (this.state.case) this.renderPhase(this.state.phaseKey);
+                } else {
+                    this.renderReview();
+                }
+            },
+
+            // --- Roulette ---
+            startRoulette: function() {
+                const overlay = document.getElementById('roulette-overlay');
+                overlay.style.display = 'flex';
+                
+                if (this.state.availableCases.length === 0) {
+                    overlay.innerHTML = `<h1 style="color:#1E8449">演練完成</h1><p>所有個案已結案。</p><button class="btn-decision" style="width:auto" onclick="location.reload()">重新開始 Reset</button>`;
+                    return;
+                }
+
+                overlay.innerHTML = `<div class="spinner-text">SEARCHING...</div>`;
+                let count = 0;
+                const interval = setInterval(() => {
+                    const idx = Math.floor(Math.random() * this.state.availableCases.length);
+                    const c = this.state.availableCases[idx];
+                    overlay.querySelector('.spinner-text').innerText = c.id;
+                    count++;
+                    if(count > 12) {
+                        clearInterval(interval);
+                        overlay.style.display = 'none';
+                        this.state.availableCases.splice(idx, 1);
+                        this.startScenario(c);
+                    }
+                }, 80);
+            },
+
+            startScenario: function(c) {
+                document.querySelector('main').scrollTop = 0;
+                this.state.case = c;
+                this.state.history = [`>> 收到派遣: ${c.id}`, `>> 抵達現場，開始評估。`];
+                this.state.investigated = { voice: false, pain: false, breathing: false, pulse: false };
+                this.state.gcsChecked = false;
+                this.state.isCrisisActive = false;
+                this.state.x_treated = false;
+                this.state.gcsInput = { e: 0, v: 0, m: 0, critical: null };
+                this.renderPhase(c.start_phase || 'start_generic');
+            },
+
+            // --- Investigate Action ---
+            investigate: function(type) {
+                const c = this.state.case;
+                let resultText = "";
+
+                if(type === 'voice') {
+                    resultText = `🗣️ [意識/指令測試]\n${c.assessments.script_voice}`;
+                    this.state.investigated.voice = true;
+                } else if(type === 'pain') {
+                    resultText = `⚡️ [痛覺測試]\n${c.assessments.script_pain}`;
+                    this.state.investigated.pain = true;
+                } else if(type === 'breathing') {
+                    resultText = `🫁 [呼吸] ${c.assessments.breathing}`;
+                    this.state.investigated.breathing = true;
+                } else if(type === 'pulse') {
+                    resultText = `❤️ [循環] ${c.assessments.pulse}`;
+                    this.state.investigated.pulse = true;
+                }
+
+                this.state.history.push(resultText);
+                this.renderPhase(this.state.phaseKey);
+            },
+
+            // --- GCS Detailed Calculator ---
+            setGCS: function(type, val) {
+                this.state.gcsInput[type] = val;
+                this.renderPhase(this.state.phaseKey); 
+            },
+            
+            setGCSCritical: function(isCritical) {
+                this.state.gcsInput.critical = isCritical;
+                this.renderPhase(this.state.phaseKey);
+            },
+
+            getEName: function(v) { return ['無反應','痛刺激','呼喚','自動'][v-1] || ''; },
+            getVName: function(v) { return ['無反應','難以理解','不當言語','混亂','清楚'][v-1] || ''; },
+            getMName: function(v) { return ['無反應','伸張(去腦)','屈曲(去皮質)','退縮','定位','聽令'][v-1] || ''; },
+
+            submitGCS: function() {
+                const user = this.state.gcsInput;
+                const correct = this.state.case.assessments.gcs;
+                const total = user.e + user.v + user.m;
+                const correctTotal = correct.e + correct.v + correct.m;
+                
+                if(user.e === 0 || user.v === 0 || user.m === 0 || user.critical === null) {
+                    alert("請完成所有 E, V, M 及危急判斷欄位。");
+                    return;
+                }
+
+                // Detailed Logic Validation
+                let feedback = [];
+                let isAllCorrect = true;
+
+                if (user.e !== correct.e) {
+                    isAllCorrect = false;
+                    feedback.push(`❌ E 錯誤：正確為 E${correct.e} (${this.getEName(correct.e)})`);
+                }
+                if (user.v !== correct.v) {
+                    isAllCorrect = false;
+                    feedback.push(`❌ V 錯誤：正確為 V${correct.v} (${this.getVName(correct.v)})`);
+                }
+                if (user.m !== correct.m) {
+                    isAllCorrect = false;
+                    feedback.push(`❌ M 錯誤：正確為 M${correct.m} (${this.getMName(correct.m)})`);
+                }
+                
+                // ALS Critical Definition Check (Based on PHTLS/ALS criteria, not just GCS)
+                const isCaseCritical = this.state.case.is_critical;
+                const userThinkCritical = user.critical;
+                
+                if (userThinkCritical !== isCaseCritical) {
+                    isAllCorrect = false;
+                    if(isCaseCritical) {
+                        feedback.push(`❌ 危急判斷錯誤：此個案為危急個案！(原因：${this.getCriticalReason()})`);
+                    } else {
+                        feedback.push(`❌ 危急判斷錯誤：此個案生命徵象穩定，非 ALS 危急個案。`);
+                    }
+                }
+
+                if (isAllCorrect) {
+                    audioSys.playTone('correct');
+                    this.state.history.push(`>> ✅ GCS 與危急判斷完全正確！ (E${user.e}V${user.v}M${user.m}=${total})`);
+                } else {
+                    audioSys.playTone('wrong');
+                    this.state.history.push(`>> ⚠️ 評估修正：`);
+                    feedback.forEach(f => this.state.history.push(`<div class="note-feedback">${f}</div>`));
+                    if(this.state.case.assessments.gcs_exp) {
+                        this.state.history.push(`<div class="note-feedback">💡 解析：${this.state.case.assessments.gcs_exp}</div>`);
+                    }
+                }
+                
+                this.state.gcsChecked = true;
+                this.renderPhase(this.state.phaseKey);
+            },
+            
+            getCriticalReason: function() {
+                const c = this.state.case;
+                let reasons = [];
+                if(c.assessments.gcs.e + c.assessments.gcs.v + c.assessments.gcs.m < 14) reasons.push("GCS<14");
+                if(c.start_phase.includes('amp')) reasons.push("大出血/截肢");
+                if(c.start_phase.includes('shock')) reasons.push("休克徵象");
+                if(c.start_phase.includes('airway')) reasons.push("呼吸道阻塞");
+                return reasons.join(", ");
+            },
+
+            renderPhase: function(phaseKey) {
+                this.state.phaseKey = phaseKey;
+                const c = this.state.case;
+                const container = document.getElementById('app-container');
+                
+                let logic;
+                try {
+                    logic = this.getPhaseLogic(phaseKey, c);
+                } catch (e) {
+                    logic = { text: "Logic Error: " + e.message, options: [{text:"Reset", next:'done'}] };
+                }
+
+                const isCrisis = this.state.isCrisisActive;
+                const showGCS = (this.state.investigated.voice || this.state.investigated.pain) && !this.state.gcsChecked && !logic.end && !isCrisis;
+                const gcs = this.state.gcsInput;
+                const gcsTotal = gcs.e + gcs.v + gcs.m;
+
+                let html = `
+                    <div class="file-folder ${isCrisis ? 'crisis-mode' : ''}">
+                        <div class="file-header">
+                            <span class="case-id">CASE: ${c.id}</span>
+                            <div style="display:flex; gap:10px; align-items:center;">
+                                <div class="crisis-badge" style="display:${isCrisis?'block':'none'}">⚠️ CRISIS</div>
+                                <div class="stamp-box ${this.state.investigated.voice ? 'assessed' : ''}">
+                                    ${this.state.investigated.voice ? 'ASSESSED' : 'PENDING'}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="file-body">
+                            <div class="crisis-overlay-msg">
+                                🚨 突發狀況！請立即處置！
+                            </div>
+                            <div class="polaroid">
+                                <img src="${c.img}" alt="Scene">
+                                <div class="polaroid-caption">${c.impression}</div>
+                            </div>
+
+                            <div class="notebook-log" id="notebook">
+                                ${this.state.history.map(h => {
+                                    let content = h.replace(/\*\*(.*?)\*\*/g, '<span class="note-highlight">$1</span>');
+                                    let cls = h.includes('⚠️') || h.includes('❌') ? 'note-crisis' : 'note-entry';
+                                    return `<div class="${cls}">${content}</div>`;
+                                }).join('')}
+                            </div>
+
+                            ${!logic.end && !isCrisis ? `
+                            <div style="font-size:0.8rem; color:#888; margin-bottom:5px; text-transform:uppercase;">Primary Survey Tools:</div>
+                            <div class="investigation-grid">
+                                <button class="btn-investigate ${this.state.investigated.voice?'checked':''}" onclick="app.investigate('voice')" ${this.state.investigated.voice?'disabled':''}>
+                                    <span>🗣️</span> 意識(指令)
+                                </button>
+                                <button class="btn-investigate ${this.state.investigated.pain?'checked':''}" onclick="app.investigate('pain')" ${this.state.investigated.pain?'disabled':''}>
+                                    <span>⚡️</span> 痛覺(動作)
+                                </button>
+                                <button class="btn-investigate ${this.state.investigated.breathing?'checked':''}" onclick="app.investigate('breathing')" ${this.state.investigated.breathing?'disabled':''}>
+                                    <span>🫁</span> 呼吸(看)
+                                </button>
+                                <button class="btn-investigate ${this.state.investigated.pulse?'checked':''}" onclick="app.investigate('pulse')" ${this.state.investigated.pulse?'disabled':''}>
+                                    <span>❤️</span> 循環(摸)
+                                </button>
+                            </div>
+                            
+                            <!-- Detailed GCS Calculator -->
+                            <div class="gcs-panel ${showGCS ? 'active' : ''}">
+                                <div style="font-weight:bold; margin-bottom:10px; color:var(--primary);">GCS 昏迷指數評估表</div>
+                                
+                                <div class="gcs-row">
+                                    <span class="gcs-label">Eyes (E) - 睜眼反應</span>
+                                    <div class="gcs-btn-group">
+                                        ${[1,2,3,4].map(v => `<button class="gcs-btn ${gcs.e===v?'selected':''}" onclick="app.setGCS('e', ${v})">${v}</button>`).join('')}
+                                    </div>
+                                </div>
+                                
+                                <div class="gcs-row">
+                                    <span class="gcs-label">Verbal (V) - 語言反應</span>
+                                    <div class="gcs-btn-group">
+                                        ${[1,2,3,4,5].map(v => `<button class="gcs-btn ${gcs.v===v?'selected':''}" onclick="app.setGCS('v', ${v})">${v}</button>`).join('')}
+                                    </div>
+                                </div>
+                                
+                                <div class="gcs-row">
+                                    <span class="gcs-label">Motor (M) - 運動反應</span>
+                                    <div class="gcs-btn-group">
+                                        ${[1,2,3,4,5,6].map(v => `<button class="gcs-btn ${gcs.m===v?'selected':''}" onclick="app.setGCS('m', ${v})">${v}</button>`).join('')}
+                                    </div>
+                                </div>
+
+                                <div class="gcs-summary">
+                                    E${gcs.e || '_'} + V${gcs.v || '_'} + M${gcs.m || '_'} = GCS ${gcsTotal} 分
+                                </div>
+
+                                <div class="gcs-critical-check">
+                                    <div style="font-size:0.9rem; margin-bottom:5px; width:100%;">符合 ALS 危急個案標準？<br><small>(包含GCS<14、休克、大出血等)</small></div>
+                                    <button class="gcs-btn ${gcs.critical===true?'selected':''}" style="border-color:var(--crisis);" onclick="app.setGCSCritical(true)">是 (Yes)</button>
+                                    <button class="gcs-btn ${gcs.critical===false?'selected':''}" style="border-color:var(--success);" onclick="app.setGCSCritical(false)">否 (No)</button>
+                                </div>
+
+                                <button class="gcs-confirm-btn" onclick="app.submitGCS()">確認提交評估</button>
+                            </div>
+                            
+                            ` : ''}
+
+                            <div class="action-area">
+                                <div class="question-text" style="${isCrisis?'color:var(--crisis)':''}">${logic.text}</div>
+                                ${logic.options.map((opt, i) => `
+                                    <button class="btn-decision ${isCrisis?'crisis-btn':''}" onclick="app.handleAction(${i})">
+                                        ${opt.text}
+                                    </button>
+                                `).join('')}
+                                
+                                ${!logic.end ? `
+                                <div class="hint-toggle" onclick="this.nextElementSibling.style.display='block'">💡 教官提示 (Hint)</div>
+                                <div class="hint-content">${logic.hint || "請先完整評估 XABC。"}</div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                container.innerHTML = html;
+                const notebook = document.getElementById('notebook');
+                if(notebook) notebook.scrollTop = notebook.scrollHeight;
+            },
+
+            handleAction: function(idx) {
+                const logic = this.getPhaseLogic(this.state.phaseKey, this.state.case);
+                const opt = logic.options[idx];
+                
+                document.querySelectorAll('.btn-decision').forEach(b => b.disabled = true);
+                this.state.history.push(`>> 決策: ${opt.text}`);
+                
+                let next = opt.next;
+                if(typeof next === 'function') next = next();
+
+                // Crisis Injection (Randomly Triggered)
+                // Trigger logic: Not ending, not in crisis, low chance (15%), or specific scenarios forcing it
+                if (!next.includes('success') && !next.includes('fail') && !next.includes('done') && !this.state.isCrisisActive && Math.random() < 0.15) {
+                    const crisisRoll = Math.random();
+                    if (crisisRoll > 0.5) {
+                        next = 'phase_crisis_air_raid';
+                        this.state.isCrisisActive = true;
+                        audioSys.playTone('crisis');
+                    } else if (this.state.case.type === 'Green' || this.state.case.type === 'Yellow') {
+                        next = 'phase_crisis_deteriorate';
+                        this.state.isCrisisActive = true;
+                        audioSys.playTone('crisis');
+                    }
+                }
+
+                if (this.state.phaseKey.includes('crisis') && !next.includes('crisis')) {
+                    this.state.isCrisisActive = false;
+                }
+
+                if(next.includes('success')) {
+                    document.querySelectorAll('.btn-decision')[idx].classList.add('correct');
+                    audioSys.playTone('correct');
+                    this.state.history.push(`>> ✅ 處置正確`);
+                } else if (next.includes('fail')) {
+                    document.querySelectorAll('.btn-decision')[idx].classList.add('wrong');
+                    audioSys.playTone('wrong');
+                    this.state.history.push(`>> ❌ ${opt.feedback || "處置不當"}`);
+                } else if (next === 'x_treated_ok') {
+                    this.state.x_treated = true;
+                    this.state.history.push(`>> ✅ 止血帶已固定。大出血停止。`);
+                    // Redirect back to generic start to continue ABC
+                    next = this.state.case.start_phase; 
+                }
+
+                setTimeout(() => {
+                    if(next === 'done') this.startRoulette();
+                    else this.renderPhase(next);
+                }, 1500);
+            },
+
+            // --- Logic Router ---
+            getPhaseLogic: function(key, c) {
+                // 1. STARTS
+                if(key.startsWith('start_')) {
+                    // Check for X (Massive Bleed)
+                    const hasX = key.includes('amp');
+                    
+                    if (hasX && !this.state.x_treated) {
+                        return {
+                            text: "🚨 傷患有噴射狀大出血 (X)！你的首要處置？",
+                            hint: "XABCDE 原則：大出血優先於呼吸道與意識評估。",
+                            options: [
+                                { text: "立即使用止血帶 (Tourniquet)", next: 'x_treated_ok' },
+                                { text: "評估意識 (GCS)", next: 'phase_fail_x_delay', feedback: "錯誤！大出血應優先止血，評估意識會延誤救命。" },
+                                { text: "暢通呼吸道", next: 'phase_fail_x_delay', feedback: "錯誤！大出血優先級高於 A。" }
+                            ]
+                        };
+                    }
+
+                    return {
+                        text: "出血已控制/無明顯大出血。指揮官，請下達指令：",
+                        hint: "進行初級評估 ABC。確認意識、呼吸、循環。",
+                        options: [
+                            key.includes('black') ? { text: "判定黑牌 (顯然死亡)，跳過", next: 'phase_success_black' } : null,
+                            
+                            (key.includes('airway') || key.includes('airway_snore')) ? { text: "呼吸道阻塞：放置 OPA/NPA", next: 'phase_success_airway' } : null,
+                            key.includes('airway') ? { text: "嘗試插管 (Intubation)", next: 'phase_fail_scope', feedback: "越權處置！" } : null,
+                            
+                            key.includes('crush') ? { text: "壓砸傷：紅牌，儘速後送", next: 'phase_success_crush' } : null,
+                            key.includes('shock') ? { text: "休克徵象：紅牌，保暖/給氧/後送", next: 'phase_success_shock' } : null,
+                            key.includes('pneumo') ? { text: "氣胸徵象：紅牌，給氧/通知醫院", next: 'phase_success_load_go' } : null,
+                            
+                            key.includes('fracture') ? { text: "黃牌：固定骨折，稍後後送", next: 'phase_success_splint' } : null,
+                            key.includes('green') ? { text: "綠牌：指引至安全區", next: 'phase_success_green' } : null,
+                            
+                            // If X was treated, allow finish
+                            this.state.x_treated ? { text: "完成初步處置，準備後送", next: 'phase_success_tq_done' } : null,
+
+                            { text: "尚未評估清楚，繼續觀察", next: key }
+                        ].filter(Boolean)
+                    };
+                }
+
+                if(key === 'phase_crisis_air_raid') {
+                    return {
+                        text: "🚨 突發狀況：空襲警報響起！",
+                        options: [
+                            { text: "繼續評估", next: 'phase_fail_danger', feedback: "無視現場安全，搜救人員陣亡。" },
+                            { text: "立即尋找掩護 (Take Cover)", next: c.start_phase || 'start_generic' }
+                        ]
+                    };
+                }
+                if(key === 'phase_crisis_deteriorate') {
+                    return {
+                        text: "🚨 突發狀況：傷患突然倒地抽搐 (癲癇/休克)！",
+                        options: [
+                            { text: "重新評估 ABC", next: 'phase_success_reassess' },
+                            { text: "不予理會", next: 'phase_fail_neglect', feedback: "忽視病情變化導致死亡。" }
+                        ]
+                    };
+                }
+
+                switch(key) {
+                    case 'phase_success_black': return this.end("檢傷完成", "正確判定黑牌，保留資源。");
+                    case 'phase_success_tq_done': return this.end("處置成功", "止血帶成功止住動脈出血，傷患存活。");
+                    case 'phase_fail_bleed': return this.end("傷患死亡", "止血失敗導致失血性休克。", false);
+                    case 'phase_fail_x_delay': return this.end("傷患死亡", "未優先處理大出血 (X)，導致失血過多。", false);
+                    case 'phase_success_airway': return this.end("處置成功", "呼吸道暢通，SpO2 上升。");
+                    case 'phase_fail_scope': return this.end("演練中止", "EMT-1 禁止執行高級呼吸道處置。", false);
+                    case 'phase_success_splint': return this.end("處置成功", "骨折已固定，痛感減輕。");
+                    case 'phase_success_green': return this.end("分流正確", "傷患已自行移動至綠區。");
+                    case 'phase_success_crush': return this.end("處置正確", "壓砸傷需快速後送避免腔室症候群。");
+                    case 'phase_success_shock': return this.end("處置正確", "休克處置得宜。");
+                    case 'phase_success_load_go': return this.end("處置正確", "危急個案快速後送。");
+                    case 'phase_fail_danger': return this.end("演練失敗", "現場安全未確認。", false);
+                    case 'phase_success_reassess': return this.end("危機解除", "成功辨識病情變化。");
+                    case 'phase_fail_neglect': return this.end("演練失敗", "忽視傷患病情變化。", false);
+                    
+                    default: return { text: "Error: Unknown Phase", options: [{text:"Reset", next:'done'}]};
+                }
+            },
+
+            end: function(title, sub, success=true) {
+                return {
+                    text: `${title}：${sub}`,
+                    end: true,
+                    options: [{ text: "結案 (Next Case)", next: 'done' }]
+                };
+            },
+
+            // --- Review Mode ---
+            renderReview: function() {
+                const container = document.getElementById('app-container');
+                const REVIEW_QUIZ = [
+                    { q: "PHTLS 評估流程中，若發現傷患有噴射狀出血，應優先處理哪一個步驟？", opts:["A (Airway)","B (Breathing)","C (Circulation)","X (Exsanguinating Hemorrhage)"], ans:3, exp:"XABCDE 原則中，危及生命的大出血 (X) 必須最優先處理，甚至先於呼吸道。" },
+                    { q: "GCS 15 分的傷患，是否可能為危急個案 (ALS)？", opts:["不可能","可能"], ans:1, exp:"可能。例如創傷截肢、代償性休克初期，雖然意識清楚 (GCS 15)，但仍屬於危急個案。" }
+                ];
+                
+                let html = `<div class="file-folder"><div class="file-header">REVIEW QUIZ</div><div class="file-body">`;
+                REVIEW_QUIZ.forEach((q, i) => {
+                    html += `<div class="quiz-card"><div class="question-text">Q${i+1}: ${q.q}</div>`;
+                    q.opts.forEach((o, oid) => {
+                        html += `<button class="btn-decision" onclick="app.checkReview(this, ${oid===q.ans}, '${q.exp}')">${o}</button>`;
+                    });
+                    html += `<div class="hint-content"></div></div>`;
+                });
+                html += `</div></div>`;
+                container.innerHTML = html;
+            },
+            
+            checkReview: function(btn, correct, exp) {
+                const fb = btn.parentElement.querySelector('.hint-content');
+                fb.style.display = 'block';
+                if(correct) {
+                    btn.classList.add('correct');
+                    fb.innerHTML = `✅ 正確！ ${exp}`;
+                } else {
+                    btn.classList.add('wrong');
+                    fb.innerHTML = `❌ 錯誤。 ${exp}`;
+                }
+            }
+        };
+
+        /* =========================================
+           3. AUDIO System
+           ========================================= */
+        const audioSys = {
+            isMuted: false,
+            ctx: null,
+            init: function() { 
+                if(!this.ctx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    if(AudioContext) this.ctx = new AudioContext();
+                }
+            },
+            toggleMute: function() { 
+                this.isMuted = !this.isMuted; 
+                document.getElementById('mute-toggle').classList.toggle('active');
+                if(!this.isMuted && this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
+            },
+            playTone: function(type) {
+                if(this.isMuted || !this.ctx) return;
+                const o = this.ctx.createOscillator(); 
+                const g = this.ctx.createGain();
+                o.connect(g); g.connect(this.ctx.destination);
+                
+                const t = this.ctx.currentTime;
+                if(type==='correct') { 
+                    o.frequency.setValueAtTime(600, t);
+                    o.frequency.exponentialRampToValueAtTime(1000, t+0.1);
+                    g.gain.setValueAtTime(0.1, t);
+                    g.gain.linearRampToValueAtTime(0, t+0.2);
+                    o.start(t); o.stop(t+0.2);
+                } else if(type==='crisis') {
+                    o.type='square';
+                    o.frequency.setValueAtTime(400, t);
+                    o.frequency.linearRampToValueAtTime(200, t+0.5);
+                    g.gain.setValueAtTime(0.2, t);
+                    g.gain.linearRampToValueAtTime(0, t+0.5);
+                    o.start(t); o.stop(t+0.5);
+                } else { 
+                    o.type='sawtooth'; 
+                    o.frequency.setValueAtTime(150, t);
+                    g.gain.setValueAtTime(0.1, t);
+                    g.gain.linearRampToValueAtTime(0, t+0.3);
+                    o.start(t); o.stop(t+0.3);
+                }
+            }
+        };
+
+    </script>
+</body>
+</html>
