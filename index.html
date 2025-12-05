@@ -2,12 +2,11 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>EMT-1 戰術兵推 V42 | 邏輯修復版</title>
+    <title>EMT-1 戰術兵推 V43 | 終極穩定版</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
-        /* --- Design System --- */
+        /* --- 1. Design System --- */
         :root {
             --bg-color: #E6E2D8; 
             --paper-color: #FDFBF7;
@@ -31,7 +30,7 @@
             overflow: hidden; position: fixed;
         }
 
-        /* --- FX --- */
+        /* --- FX: High Stress --- */
         @keyframes shake {
             0% { transform: translate(1px, 1px) rotate(0deg); }
             10% { transform: translate(-1px, -2px) rotate(-1deg); }
@@ -45,17 +44,17 @@
             90% { transform: translate(1px, 2px) rotate(0deg); }
             100% { transform: translate(1px, -2px) rotate(-1deg); }
         }
-        .screen-shake { animation: shake 0.5s; animation-iteration-count: 3; }
+        .screen-shake { animation: shake 0.5s; animation-iteration-count: infinite; }
 
-        .red-flash {
+        .red-strobe {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(192, 57, 43, 0.4);
-            pointer-events: none; /* Critical: Ensure clicks pass through */
-            z-index: 4500; /* Below modals, above map */
+            background: rgba(192, 57, 43, 0.3);
+            pointer-events: none; /* 重要：讓點擊穿透 */
+            z-index: 4500; 
             display: none;
-            animation: flashFade 0.5s infinite alternate;
+            animation: strobe 0.2s infinite alternate;
         }
-        @keyframes flashFade { from { opacity: 0.2; } to { opacity: 0.8; } }
+        @keyframes strobe { from { opacity: 0.1; background:rgba(255,0,0,0.1); } to { opacity: 0.6; background:rgba(255,0,0,0.5); } }
 
         /* --- Header --- */
         header {
@@ -68,8 +67,11 @@
         .top-right-controls { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); padding-top: env(safe-area-inset-top); }
         .mute-btn { border: 1px solid #999; color: #555; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; background:none; cursor: pointer; }
 
-        /* --- Main --- */
+        /* --- Main & View Containers --- */
         main { flex: 1; overflow: hidden; position: relative; display: flex; flex-direction: column; padding-bottom: calc(var(--nav-height) + env(safe-area-inset-bottom)); }
+
+        #scene-view, #patient-view { width: 100%; height: 100%; position: relative; display: none; }
+        #patient-view { background: var(--paper-color); flex-direction: column; }
 
         /* --- Triage Bar --- */
         #triage-bar {
@@ -85,12 +87,13 @@
         .btn-triage.green { background: #27AE60; }
         .btn-triage.black { background: #2C3E50; }
 
-        /* --- Dashboard (Z-Index 6000) --- */
+        /* --- Dashboard (Highest Priority) --- */
         #dashboard {
             position: fixed; top: 80px; left: 20px; width: 44px; height: 44px;
             background: rgba(255,255,255,0.98); border: 1px solid #777;
-            border-radius: 50%; box-shadow: 0 4px 15px rgba(0,0,0,0.4); 
-            z-index: 6000; overflow: hidden; touch-action: none; 
+            border-radius: 50%; box-shadow: 0 4px 15px rgba(0,0,0,0.5); 
+            z-index: 6000; /* 高於 Modal */
+            overflow: hidden; touch-action: none; 
             transition: width 0.2s, height 0.2s, border-radius 0.2s;
         }
         #dashboard.expanded { width: 170px; height: auto; border-radius: 8px; }
@@ -111,8 +114,8 @@
         .mission-card { background: #fff; border: 1px solid #999; padding: 25px; max-width: 400px; width: 100%; box-shadow: 0 10px 20px rgba(0,0,0,0.1); border-radius: 8px; }
         .btn-start { margin-top: 20px; padding: 15px 40px; background: var(--primary); color: #fff; border: none; font-size: 1.2rem; cursor: pointer; border-radius: 30px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); font-weight: bold; width: 100%; }
 
-        /* --- Scene View --- */
-        #scene-view { width: 100%; height: 100%; position: relative; background: #EAECEE; display: none; }
+        /* --- Map View --- */
+        #scene-view { background: #EAECEE; }
         .map-grid {
             width: 100%; height: 100%; position: relative;
             background-image: linear-gradient(rgba(255,255,255,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.3) 1px, transparent 1px);
@@ -151,8 +154,7 @@
         }
         #mission-timer.urgent { color: #e74c3c; animation: pulse-red 0.5s infinite; border-color: #e74c3c; font-weight:bold; font-size:1.4rem; }
 
-        /* --- Patient View --- */
-        #patient-view { width: 100%; height: 100%; position: absolute; top: 0; left: 0; background: var(--paper-color); display: none; flex-direction: column; }
+        /* --- Patient View Elements --- */
         .pv-header { padding: 8px 12px; background: #fff; border-bottom: 1px solid #ccc; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
         .pv-content-scroll { flex: 1; overflow-y: auto; display: flex; flex-direction: column; padding-bottom: 150px; }
         .body-container { height: 380px; position: relative; background: #FDFBF7; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid #ddd; }
@@ -172,15 +174,15 @@
         .btn-action { padding: 15px; background: #fff; border: 1px solid #999; border-radius: 8px; width:100%; margin-bottom:8px; text-align: left; cursor: pointer; font-size: 1rem; }
         .btn-action.priority { border: 2px solid var(--accent); background: #FDEDEC; font-weight: bold; color: var(--accent); }
 
-        /* --- Modals --- */
+        /* --- Modals (Z-Index 5000) --- */
         #crisis-overlay, #report-modal, #ending-modal {
             position: fixed; top:0; left:0; width:100%; height:100%;
-            background: rgba(0,0,0,0.85); z-index: 5000;
+            background: rgba(0,0,0,0.9); z-index: 5000;
             display: none; justify-content: center; align-items: center; padding: 20px;
         }
-        #crisis-overlay { background: rgba(50, 0, 0, 0.95); }
-        .crisis-box { border: 4px solid #E74C3C; padding: 25px; border-radius: 0; width: 100%; max-width: 500px; background: #000; text-align: center; color: #fff; box-shadow: 0 0 30px #E74C3C; }
-        .report-card { background: white; padding: 25px; border-radius: 12px; width: 100%; max-width: 360px; max-height: 85dvh; overflow-y: auto; }
+        #crisis-overlay { background: rgba(20, 0, 0, 0.95); }
+        .crisis-box { border: 5px solid #E74C3C; padding: 25px; width: 100%; max-width: 500px; background: #000; text-align: center; color: #fff; box-shadow: 0 0 40px #E74C3C; }
+        .report-card { background: white; padding: 25px; border-radius: 12px; width: 100%; max-width: 360px; max-height: 85dvh; overflow-y: auto; position:relative; z-index:5001;}
         .report-row { margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; font-weight: bold; font-size: 1.1rem; }
         .report-input { width: 60px; padding: 10px; text-align: center; font-size: 1.2rem; border: 1px solid #ccc; background: #f9f9f9; }
 
@@ -195,7 +197,7 @@
     </style>
 </head>
 <body>
-    <div id="red-flash-fx" class="red-flash"></div>
+    <div id="red-strobe-fx" class="red-strobe"></div>
 
     <div id="dashboard">
         <div class="dash-icon">📊</div>
@@ -211,12 +213,12 @@
 
     <div id="start-screen">
         <div class="mission-card">
-            <h1 style="font-size:1.5rem; margin-bottom:15px; color:var(--primary);">EMT-1 戰術兵推 V42</h1>
+            <h1 style="font-size:1.5rem; margin-bottom:15px; color:var(--primary);">EMT-1 戰術兵推 V43</h1>
             <p style="color:#666; margin-bottom:20px; line-height:1.6; text-align:left;">
                 <strong>任務代號：</strong> 1130 空襲事件<br>
                 <strong>傷患總數：</strong> 15 名<br>
                 <strong>任務時限：</strong> <span style="color:#C0392B; font-weight:bold;">5 分鐘 (壓力測試)</span><br>
-                <small style="color:var(--accent)">⚠️ 修正：邏輯已重構，確保點擊與狀態正確。</small>
+                <small style="color:var(--accent)">⚠️ 包含強烈閃光與震動效果。請開啟音效。</small>
             </p>
             <button class="btn-start" onclick="app.startMission()">開始任務 Start</button>
         </div>
@@ -224,18 +226,18 @@
 
     <div id="crisis-overlay">
         <div class="crisis-box">
-            <div style="font-size:3.5rem; margin-bottom:10px;">💣</div>
-            <div style="font-size:2rem; font-weight:bold; color:#E74C3C; margin-bottom:10px; text-transform:uppercase;">INCOMING FIRE</div>
-            <div class="crisis-desc" id="crisis-desc" style="font-size:1.2rem; margin-bottom:20px;">敵軍砲火覆蓋！熱區禁止醫療！</div>
-            <div style="background:#333; padding:10px; color:#F1C40F; font-weight:bold; margin-bottom:20px; font-size:0.9rem;">TECC 戰術準則："威脅大於治療。沒有掩護就沒有醫療。"</div>
-            <button class="btn-action" style="width:100%; justify-content:center; font-weight:bold; font-size:1.1rem; padding:15px; background:#E74C3C; color:white; border:none;" onclick="app.resolveCrisis()">尋找掩護 (TAKE COVER)</button>
+            <div style="font-size:4rem; margin-bottom:10px;">💣</div>
+            <div style="font-size:2.5rem; font-weight:bold; color:#E74C3C; margin-bottom:10px; text-transform:uppercase; letter-spacing:2px;">INCOMING FIRE</div>
+            <div class="crisis-desc" id="crisis-desc" style="font-size:1.4rem; margin-bottom:20px; font-weight:bold;">敵軍砲火覆蓋！熱區禁止醫療！</div>
+            <div style="background:#333; padding:15px; color:#F1C40F; font-weight:bold; margin-bottom:25px; font-size:1rem; border:1px solid #F1C40F;">TECC 戰術準則：<br>"威脅大於治療。沒有掩護就沒有醫療。"</div>
+            <button class="btn-action" style="width:100%; justify-content:center; font-weight:bold; font-size:1.3rem; padding:15px; background:#E74C3C; color:white; border:none; box-shadow:0 4px 15px rgba(231,76,60,0.5);" onclick="app.resolveCrisis()">立即尋找掩護 (TAKE COVER)</button>
         </div>
     </div>
 
     <div id="report-modal">
         <div class="report-card">
             <h2 style="text-align:center; color:var(--primary); margin-bottom:10px;">指揮中心回報</h2>
-            <p style="text-align:center; color:#666; margin-bottom:25px; font-size:0.85rem;">(請參考懸浮看板數據)</p>
+            <p style="text-align:center; color:#666; margin-bottom:25px; font-size:0.85rem;">(請拖曳戰情看板以對照數據)</p>
             <div class="report-row" style="color:#C0392B;">🔴 紅牌 (Red): <input type="number" id="rep-r" class="report-input" min="0" inputmode="numeric"></div>
             <div class="report-row" style="color:#F39C12;">🟡 黃牌 (Yellow): <input type="number" id="rep-y" class="report-input" min="0" inputmode="numeric"></div>
             <div class="report-row" style="color:#27AE60;">🟢 綠牌 (Green): <input type="number" id="rep-g" class="report-input" min="0" inputmode="numeric"></div>
@@ -254,7 +256,7 @@
         </div>
     </div>
 
-    <header><h1>EMT-1 戰術兵推 V42</h1><div class="top-right-controls"><button id="mute-toggle" class="mute-btn" onclick="audioSys.toggleMute()">🔊</button></div></header>
+    <header><h1>EMT-1 戰術兵推 V43</h1><div class="top-right-controls"><button id="mute-toggle" class="mute-btn" onclick="audioSys.toggleMute()">🔊</button></div></header>
 
     <main id="main-container">
         <div id="scene-view">
@@ -307,12 +309,13 @@
     </div>
 
     <script>
+        // --- DATA ---
         const CASES_INIT = [
             { id: "MCI-01", type: "Black", title: "C區-被水泥壓住", findings: { head: {text:"頭顱變形，腦組織外溢", icon:"💀"}, chest: {text:"無起伏", icon:""}, abdomen: {text:"無法評估", icon:""}, arm_l: {text:"無反應", icon:""}, arm_r: {text:"無反應", icon:""}, leg_l: {text:"被壓住", icon:""}, leg_r: {text:"被壓住", icon:""} }, is_x: false, feedback: "腦組織外溢為明顯死亡徵象 (DOA)。", actions_needed: [] },
             { id: "MCI-02", type: "Red", title: "B區-呼吸急促", findings: { head: {text:"口鼻碳粒，喘鳴聲", icon:"🔥"}, chest: {text:"呼吸32次/分，費力", icon:"⚠️"}, abdomen: {text:"無外傷", icon:""}, arm_l: {text:"二度燒傷", icon:""}, arm_r: {text:"二度燒傷", icon:""}, leg_l: {text:"無外傷", icon:""}, leg_r: {text:"無外傷", icon:""} }, is_x: false, feedback: "呼吸速率 > 30 且呼吸道灼傷，優先紅牌。", actions_needed: ["opa"] },
             { id: "MCI-03", type: "Red", title: "B區-大出血", findings: { head: {text:"尖叫呼救", icon:"😨"}, chest: {text:"呼吸26次/分，蒼白", icon:""}, abdomen: {text:"無外傷", icon:""}, arm_l: {text:"無外傷", icon:""}, arm_r: {text:"無外傷", icon:""}, leg_l: {text:"無外傷", icon:""}, leg_r: {text:"🩸 右腿截肢噴血！", icon:"🩸", is_x: true} }, is_x: true, death_timer: 45, feedback: "動脈大出血，未立即止血導致死亡。", actions_needed: ["tq"] },
-            { id: "MCI-04", type: "Red", title: "C區-半掩埋", findings: { head: {text:"意識不清(GCS 9)", icon:"🥴"}, chest: {text:"呼吸淺快 8次/分", icon:""}, abdomen: {text:"壓痛", icon:""}, arm_l: {text:"擦傷", icon:""}, arm_r: {text:"擦傷", icon:""}, leg_l: {text:"被壓住", icon:""}, leg_r: {text:"被壓住", icon:""} }, is_x: false, feedback: "意識不清 (GCS<10) 為紅牌。", actions_needed: ["opa"] },
-            { id: "MCI-05", type: "Yellow", title: "A區-坐著手痛", findings: { head: {text:"意識清楚", icon:"🙂"}, chest: {text:"呼吸20次/分", icon:""}, abdomen: {text:"軟", icon:""}, arm_l: {text:"變形，無大出血", icon:"🦴"}, arm_r: {text:"無", icon:""}, leg_l: {text:"割傷", icon:""}, leg_r: {text:"無", icon:""} }, is_x: false, feedback: "無法行走但徵象穩定，黃牌。", actions_needed: [] },
+            { id: "MCI-04", type: "Red", title: "C區-半掩埋", findings: { head: {text:"意識不清(GCS 9)", icon:"🥴"}, chest: {text:"呼吸淺快 8次/分", icon:""}, abdomen: {text:"壓痛", icon:""}, arm_l: {text:"擦傷", icon:""}, arm_r: {text:"擦傷", icon:""}, leg_l: {text:"被瓦礫壓住", icon:""}, leg_r: {text:"被瓦礫壓住", icon:""} }, is_x: false, feedback: "意識不清 (GCS<10) 為紅牌。", actions_needed: ["opa"] },
+            { id: "MCI-05", type: "Yellow", title: "A區-坐著手痛", findings: { head: {text:"意識清楚，主訴手痛", icon:"🙂"}, chest: {text:"呼吸20次/分", icon:""}, abdomen: {text:"軟", icon:""}, arm_l: {text:"變形，無大出血", icon:"🦴"}, arm_r: {text:"無", icon:""}, leg_l: {text:"割傷", icon:""}, leg_r: {text:"無", icon:""} }, is_x: false, feedback: "無法行走但徵象穩定，黃牌。", actions_needed: [] },
             { id: "MCI-06", type: "Yellow", title: "A區-胸痛", findings: { head: {text:"意識清楚", icon:""}, chest: {text:"前胸挫傷，呼吸22次/分", icon:"🩹"}, abdomen: {text:"軟", icon:""}, arm_l: {text:"無", icon:""}, arm_r: {text:"無", icon:""}, leg_l: {text:"無", icon:""}, leg_r: {text:"無", icon:""} }, is_x: false, feedback: "胸部挫傷但呼吸正常，黃牌。", actions_needed: [] },
             { id: "MCI-07", type: "Yellow", title: "B區-跌坐", findings: { head: {text:"痛苦表情", icon:""}, chest: {text:"呼吸20次/分", icon:""}, abdomen: {text:"骨盆擠壓痛", icon:"⚡"}, arm_l: {text:"無", icon:""}, arm_r: {text:"無", icon:""}, leg_l: {text:"無", icon:""}, leg_r: {text:"無", icon:""} }, is_x: false, feedback: "骨盆骨折，黃牌。", actions_needed: [] },
             { id: "MCI-08", type: "Yellow", title: "A區-摀肚子", findings: { head: {text:"冒冷汗", icon:""}, chest: {text:"呼吸24次/分", icon:""}, abdomen: {text:"腸道外露", icon:"🌭"}, arm_l: {text:"無", icon:""}, arm_r: {text:"無", icon:""}, leg_l: {text:"無", icon:""}, leg_r: {text:"無", icon:""} }, is_x: false, feedback: "臟器外露，需覆蓋，黃牌。", actions_needed: ["gut"] },
@@ -348,6 +351,8 @@
                 document.getElementById('dashboard').classList.remove('expanded');
                 ['r','y','g','b'].forEach(k => document.getElementById(`count-${k}`).innerText = "0");
                 document.getElementById('pending-count').innerText = "15";
+                const dash = document.getElementById('dashboard');
+                dash.style.left = '20px'; dash.style.top = '80px';
             },
 
             startMission: function() {
@@ -411,9 +416,9 @@
                 map.querySelectorAll('.patient-dot').forEach(e => e.remove());
                 
                 const slots = [
-                    {t: 10, l: 10}, {t: 10, l: 30}, {t: 25, l: 10}, {t: 25, l: 30}, {t: 40, l: 20}, // A
-                    {t: 10, l: 60}, {t: 10, l: 80}, {t: 30, l: 60}, {t: 30, l: 80}, {t: 20, l: 70}, // B
-                    {t: 60, l: 15}, {t: 60, l: 45}, {t: 60, l: 75}, {t: 75, l: 30}, {t: 75, l: 60}  // C
+                    {t: 10, l: 10}, {t: 10, l: 30}, {t: 25, l: 10}, {t: 25, l: 30}, {t: 40, l: 20},
+                    {t: 10, l: 60}, {t: 10, l: 80}, {t: 30, l: 60}, {t: 30, l: 80}, {t: 20, l: 70},
+                    {t: 60, l: 15}, {t: 60, l: 45}, {t: 60, l: 75}, {t: 75, l: 30}, {t: 75, l: 60}
                 ];
 
                 CASES.forEach((c, idx) => {
@@ -425,6 +430,9 @@
                     dot.style.top = (pos.t + (Math.random()-0.5)*3) + '%';
                     dot.style.left = (pos.l + (Math.random()-0.5)*3) + '%';
                     
+                    // KEY FIX: Use dataset to bind ID, avoid closure issues
+                    dot.dataset.caseId = c.id; 
+
                     if (this.state.greenBroadcasted && c.type === 'Green' && c.id !== 'MCI-14') {
                         dot.classList.add('green-walk');
                         setTimeout(() => {
@@ -436,22 +444,39 @@
                             }
                         }, 800);
                     } else {
-                        // FIX: Pass ID string to avoid object reference closure issues
-                        dot.onclick = () => this.enterCase(c.id);
+                        // KEY FIX: Read ID from event target
+                        dot.addEventListener('click', (e) => {
+                            const id = e.currentTarget.dataset.caseId;
+                            this.enterCase(id);
+                        });
                     }
                     map.appendChild(dot);
                 });
             },
 
-            enterCase: function(caseId) {
-                // FIX: Find fresh object from array using ID
-                const c = CASES.find(x => x.id === caseId);
-                if (!c) return;
-
-                this.state.currentCase = c;
+            clearPatientState: function() {
+                this.state.currentCase = null;
                 this.state.assessedParts = [];
+                this.state.log = [];
+                this.state.x_treated = false;
+                this.state.isDead = false;
+                document.querySelectorAll('.body-part').forEach(el => {
+                    el.classList.remove('assessed', 'injured', 'critical-x');
+                });
+                document.getElementById('body-overlays').innerHTML = '';
+                if(this.state.timerId) clearInterval(this.state.timerId);
+                document.getElementById('bleed-timer').style.display = 'none';
+            },
+
+            enterCase: function(caseId) {
+                // HARD RESET before loading new case
+                this.clearPatientState();
+
+                const c = CASES.find(x => x.id === caseId);
+                if (!c) { console.error("Case not found:", caseId); return; }
+
+                this.state.currentCase = c; // Set new case
                 this.state.log = [`>> 接觸傷患: ${c.title}`];
-                this.state.x_treated = false; this.state.inCrisis = false; this.state.isDead = false;
                 if(!this.state.userActions[c.id]) this.state.userActions[c.id] = [];
                 
                 document.getElementById('scene-view').style.display = 'none';
@@ -459,24 +484,20 @@
                 document.getElementById('triage-bar').style.display = 'grid'; 
                 document.getElementById('case-title').innerText = `CASE: ${c.id}`;
                 
-                document.querySelectorAll('.body-part').forEach(el => el.classList.remove('assessed', 'injured', 'critical-x'));
-                document.getElementById('body-overlays').innerHTML = '';
-
+                // Bleeding Timer
                 if (c.death_timer) {
                     this.state.deathCountdown = c.death_timer;
                     document.getElementById('bleed-timer').style.display = 'block';
                     document.getElementById('bleed-timer').innerText = `${this.state.deathCountdown}s`;
-                    if (this.state.timerId) clearInterval(this.state.timerId);
                     this.state.timerId = setInterval(() => {
                         if (this.state.x_treated || this.state.isDead) { clearInterval(this.state.timerId); return; }
                         this.state.deathCountdown--;
                         document.getElementById('bleed-timer').innerText = `${this.state.deathCountdown}s`;
                         if (this.state.deathCountdown <= 0) this.triggerDeath("失血過多");
                     }, 1000);
-                } else {
-                    document.getElementById('bleed-timer').style.display = 'none';
                 }
 
+                // Initial Critical Signs
                 if (c.is_x) {
                     const xKey = Object.keys(c.findings).find(k => c.findings[k].is_x);
                     if(xKey) {
@@ -488,9 +509,7 @@
             },
 
             returnToScene: function() {
-                if(this.state.timerId) clearInterval(this.state.timerId);
-                // FIX: CRITICAL RESET OF CURRENT CASE to prevent sticking
-                this.state.currentCase = null;
+                this.clearPatientState(); // Ensure state is wiped on exit
                 document.getElementById('triage-bar').style.display = 'none';
                 this.renderSceneMap();
             },
@@ -620,7 +639,8 @@
             triggerRandomCrisis: function() {
                 if (this.state.inCrisis || this.state.missionTime < 30) return;
                 
-                if (Math.random() < 0.3) {
+                // Increase crisis chance for stress
+                if (Math.random() < 0.35) {
                     this.state.inCrisis = true;
                     this.triggerAirRaid();
                 } 
@@ -636,21 +656,33 @@
             triggerAirRaid: function() {
                 audioSys.playTone('alarm');
                 document.body.classList.add('screen-shake');
-                document.getElementById('red-flash-fx').style.display = 'block';
+                document.getElementById('red-strobe-fx').style.display = 'block'; // Red Flash
                 document.getElementById('crisis-overlay').style.display = 'flex';
                 
-                // FORCE RETREAT IF IN PATIENT VIEW
+                // PUNISHMENT: If in patient view, you die.
                 if (document.getElementById('patient-view').style.display !== 'none') {
-                    this.returnToScene(); 
+                    // Slight delay to allow realization
+                    setTimeout(() => {
+                        if(this.state.inCrisis) { // If still in crisis and viewing patient
+                             alert("💀 您已陣亡 (K.I.A)\n\n原因：空襲期間未立即撤離熱區，遭破片擊中。\n\n教訓：TECC 第一原則 - 搶救傷患前，先確保自身存活。");
+                             location.reload(); // Hard Game Over
+                        }
+                    }, 4000); // 4 seconds grace period to click "Take Cover"
                 }
             },
 
             resolveCrisis: function() {
                 document.getElementById('crisis-overlay').style.display = 'none';
-                document.getElementById('red-flash-fx').style.display = 'none';
+                document.getElementById('red-strobe-fx').style.display = 'none';
                 document.body.classList.remove('screen-shake');
                 this.state.inCrisis = false;
                 
+                // If user clicked "Take Cover", forced retreat
+                if (document.getElementById('patient-view').style.display !== 'none') {
+                    this.returnToScene();
+                }
+
+                // Penalty for M-03 if delayed
                 const p3 = CASES.find(c => c.id === 'MCI-03');
                 if (!this.state.completedIds.includes('MCI-03') && !this.state.x_treated) {
                     p3.type = 'Black'; p3.feedback = "因空襲延誤止血，傷患已死亡。";
@@ -746,15 +778,12 @@
                 o.connect(g); g.connect(this.ctx.destination);
                 const t = this.ctx.currentTime;
                 if (type === 'alarm') {
-                    o.type = 'sawtooth'; o.frequency.setValueAtTime(600, t); 
-                    o.frequency.linearRampToValueAtTime(900, t+0.1); 
-                    g.gain.setValueAtTime(0.3, t); g.gain.linearRampToValueAtTime(0, t+0.4);
-                    o.start(t); o.stop(t+0.4);
-                    setTimeout(()=>this.playTone('alarm_echo'), 400);
-                } else if (type === 'alarm_echo') {
-                     o.type = 'square'; o.frequency.setValueAtTime(900, t); 
-                     g.gain.setValueAtTime(0.3, t); g.gain.linearRampToValueAtTime(0, t+0.4);
-                     o.start(t); o.stop(t+0.4);
+                    // Stuttering Alarm
+                    o.type = 'sawtooth'; o.frequency.setValueAtTime(800, t); 
+                    g.gain.setValueAtTime(0.5, t); g.gain.setValueAtTime(0, t+0.1);
+                    g.gain.setValueAtTime(0.5, t+0.2); g.gain.setValueAtTime(0, t+0.3);
+                    o.start(t); o.stop(t+0.5);
+                    setTimeout(()=>this.playTone('alarm'), 600); // Loop
                 } else if (type === 'correct') {
                     o.frequency.value = 800; g.gain.value = 0.1; o.start(); o.stop(t+0.1);
                 } else {
