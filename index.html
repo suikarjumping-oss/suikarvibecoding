@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>EMT-1 戰術兵推 V27 | 消失圓點與倒數版</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>EMT-1 戰術兵推 V28 | 行動適配版</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
         /* --- 1. Design System --- */
@@ -19,7 +19,7 @@
             --warning: #F39C12;
             --black: #2C3E50;
             
-            --radius: 4px;
+            --radius: 6px;
             --border: 1px solid #C0B7A8;
             --shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
@@ -31,7 +31,9 @@
             font-family: 'Noto Sans TC', sans-serif;
             background-color: var(--bg-color);
             color: var(--text-main);
-            height: 100vh;
+            /* Dynamic Viewport Height for Mobile Browsers */
+            height: 100dvh; 
+            width: 100vw;
             display: flex; flex-direction: column;
             overflow: hidden; 
         }
@@ -41,32 +43,37 @@
             padding: 10px 16px; background: #F4F3EF; border-bottom: 2px solid #aaa;
             display: flex; justify-content: space-between; align-items: center; z-index: 20;
             box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            height: 50px; flex-shrink: 0;
+            padding-top: env(safe-area-inset-top); /* Notch support */
         }
         h1 { font-size: 1rem; font-weight: 700; margin: 0; color: var(--primary); letter-spacing: 1px; }
         
-        .mute-btn { border: 1px solid #999; color: #555; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; background:none; cursor: pointer; }
+        .mute-btn { border: 1px solid #999; color: #555; padding: 4px 10px; border-radius: 4px; font-size: 0.8rem; background:none; cursor: pointer; }
         .mute-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
 
         /* --- Main Layout --- */
         main {
             flex: 1; overflow: hidden; position: relative;
             display: flex; flex-direction: column;
+            /* Ensure bottom content isn't hidden by home bar */
+            padding-bottom: env(safe-area-inset-bottom);
         }
 
         /* --- 0. START SCREEN --- */
         #start-screen {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(230, 226, 216, 0.98); z-index: 60;
+            background: rgba(230, 226, 216, 0.98); z-index: 600;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             text-align: center; padding: 20px;
         }
         .mission-card {
-            background: #fff; border: 1px solid #999; padding: 30px; max-width: 400px;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.1); transform: rotate(-1deg);
+            background: #fff; border: 1px solid #999; padding: 25px; max-width: 400px; width: 100%;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1); border-radius: 8px;
         }
         .btn-start {
-            margin-top: 20px; padding: 12px 30px; background: var(--primary); color: #fff;
-            border: none; font-size: 1.1rem; cursor: pointer; border-radius: 2px;
+            margin-top: 20px; padding: 15px 40px; background: var(--primary); color: #fff;
+            border: none; font-size: 1.2rem; cursor: pointer; border-radius: 30px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2); font-weight: bold;
         }
 
         /* --- 1. SCENE MAP VIEW --- */
@@ -82,60 +89,73 @@
                 linear-gradient(rgba(255,255,255,0.3) 1px, transparent 1px),
                 linear-gradient(90deg, rgba(255,255,255,0.3) 1px, transparent 1px);
             background-size: 40px 40px;
+            overflow: hidden; 
         }
-        .map-obj { position: absolute; font-size: 0.8rem; color: #555; pointer-events: none; text-align: center; font-weight: bold; }
-        .map-obj.zone-a { top: 10%; left: 10%; width: 30%; height: 30%; border: 2px dashed #999; display:flex; align-items:center; justify-content:center; opacity:0.5; }
-        .map-obj.zone-b { top: 50%; left: 50%; width: 40%; height: 40%; border: 2px dashed #999; display:flex; align-items:center; justify-content:center; opacity:0.5; }
+        .map-obj { position: absolute; font-size: 0.8rem; color: #555; pointer-events: none; text-align: center; font-weight: bold; border: 2px dashed #999; display:flex; align-items:center; justify-content:center; opacity:0.5; background: rgba(255,255,255,0.2); }
+        .map-obj.zone-a { top: 5%; left: 5%; width: 40%; height: 35%; }
+        .map-obj.zone-b { top: 50%; left: 50%; width: 45%; height: 45%; }
+        .map-obj.zone-c { top: 70%; left: 5%; width: 35%; height: 25%; }
         
         .patient-dot {
-            width: 32px; height: 32px; background: #7F8C8D; border: 2px solid #fff;
+            width: 40px; height: 40px; background: #7F8C8D; border: 2px solid #fff;
             border-radius: 50%; position: absolute; cursor: pointer;
             box-shadow: 0 3px 6px rgba(0,0,0,0.3);
             display: flex; align-items: center; justify-content: center;
-            font-weight: bold; color: #fff; font-size: 0.7rem;
-            transition: all 0.3s; z-index: 10;
+            font-weight: bold; color: #fff; font-size: 0.8rem;
+            transition: transform 0.2s; z-index: 10;
+            /* Ensure touch targets are big enough */
+            touch-action: manipulation;
         }
-        .patient-dot:hover { transform: scale(1.3); z-index: 15; background: var(--primary); }
+        .patient-dot:active { transform: scale(1.4); }
+        /* Tag Colors */
+        .patient-dot.done-Red { background: #C0392B; opacity: 0.9; }
+        .patient-dot.done-Yellow { background: #F1C40F; opacity: 0.9; color: #333; }
+        .patient-dot.done-Green { background: #27AE60; opacity: 0.9; }
+        .patient-dot.done-Black { background: #2C3E50; opacity: 0.9; }
         
         .patient-dot.green-walk { animation: walkAway 1s forwards; }
-
         @keyframes walkAway { to { opacity: 0; transform: translate(100px, -100px); } }
 
         .broadcast-btn {
-            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
-            background: var(--success); color: white; border: none; padding: 15px 30px;
-            font-size: 1.1rem; border-radius: 30px; cursor: pointer;
+            position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%);
+            background: var(--success); color: white; border: none; padding: 12px 24px;
+            font-size: 1rem; border-radius: 30px; cursor: pointer;
             box-shadow: 0 4px 10px rgba(0,0,0,0.2); font-weight: bold; display: flex; gap: 8px; align-items: center;
-            z-index: 30;
+            z-index: 30; white-space: nowrap;
+            /* Avoid bottom bar intersection */
+            margin-bottom: env(safe-area-inset-bottom);
         }
         .broadcast-btn:disabled { background: #999; cursor: default; opacity: 0.7; }
 
-        /* Mission Timer */
-        #mission-timer {
-            position: absolute; top: 20px; right: 20px;
-            background: #333; color: #0f0; font-family: 'Roboto Mono', monospace;
-            font-size: 1.5rem; padding: 5px 15px; border-radius: 4px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.3); border: 2px solid #555;
-            z-index: 40;
-        }
-        #mission-timer.urgent { color: #e74c3c; animation: pulse-red 1s infinite; border-color: #e74c3c; }
-
-        /* Floating Dashboard (Draggable) */
+        /* Floating Dashboard */
         #dashboard {
-            position: fixed; top: 60px; left: 20px; width: 160px;
-            background: rgba(255,255,255,0.98); border: 1px solid #777;
-            border-radius: 6px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); 
-            z-index: 500; /* Highest to be over modal */
-            transition: height 0.3s; overflow: hidden;
+            position: fixed; top: 60px; left: 10px; width: 160px;
+            background: rgba(255,255,255,0.98); border: 1px solid #555;
+            border-radius: 8px; box-shadow: 0 5px 20px rgba(0,0,0,0.4); 
+            z-index: 1000; /* Highest z-index to float over report modal */
+            transition: height 0.3s, opacity 0.3s; 
+            display: none; /* Hidden initially */
+            overflow: hidden;
         }
         .dash-header {
-            background: var(--primary); color: white; padding: 8px; cursor: move;
+            background: var(--primary); color: white; padding: 10px; cursor: move;
             font-size: 0.85rem; font-weight: bold; display: flex; justify-content: space-between; align-items: center;
+            touch-action: none; /* Essential for drag */
         }
-        .dash-btn { background: none; border: none; color: white; font-weight: bold; cursor: pointer; padding: 0 5px; }
+        .dash-btn { background: none; border: none; color: white; font-weight: bold; cursor: pointer; padding: 5px 10px; font-size: 1.2rem; line-height: 0.5; }
         .dash-content { padding: 10px; font-size: 0.9rem; }
-        .dash-row { display: flex; justify-content: space-between; margin-bottom: 6px; border-bottom: 1px dotted #ccc; }
+        .dash-row { display: flex; justify-content: space-between; margin-bottom: 6px; border-bottom: 1px dotted #ccc; padding-bottom: 2px;}
         .dash-content.collapsed { display: none; }
+
+        /* Mission Timer */
+        #mission-timer {
+            position: absolute; top: 10px; right: 10px;
+            background: #333; color: #0f0; font-family: 'Roboto Mono', monospace;
+            font-size: 1.2rem; padding: 6px 12px; border-radius: 4px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3); border: 2px solid #555;
+            z-index: 40; pointer-events: none;
+        }
+        #mission-timer.urgent { color: #e74c3c; animation: pulse-red 1s infinite; border-color: #e74c3c; }
 
         /* --- 2. PATIENT VIEW --- */
         #patient-view {
@@ -145,19 +165,26 @@
         
         .pv-header { 
             padding: 8px 12px; background: #fff; border-bottom: 1px solid #ccc; 
-            display: flex; justify-content: space-between; align-items: center;
+            display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;
         }
-        .pv-body { flex: 1; display: flex; overflow: hidden; }
+        .pv-body { flex: 1; display: flex; overflow: hidden; position: relative; }
         
+        /* RWD: Flex Direction change on mobile */
+        @media (max-width: 768px) {
+            .pv-body { flex-direction: column; }
+            .body-container { height: 45%; border-right: none; border-bottom: 1px solid #ddd; flex-shrink: 0; }
+            .info-panel { height: 55%; max-width: 100%; padding-bottom: 80px; /* Space for triage buttons */ }
+        }
+
         .body-container {
             flex: 1; position: relative; background: #FDFBF7;
             display: flex; align-items: center; justify-content: center;
-            border-right: 1px solid #ddd; padding: 10px;
+            border-right: 1px solid #ddd; padding: 10px; overflow: hidden;
         }
-        svg.body-svg { height: 100%; width: auto; max-width: 100%; filter: drop-shadow(0 5px 5px rgba(0,0,0,0.1)); }
+        svg.body-svg { height: 100%; width: auto; max-width: 100%; filter: drop-shadow(0 5px 5px rgba(0,0,0,0.1)); touch-action: manipulation; }
         
         .body-part { fill: #E0E0E0; stroke: #999; stroke-width: 1.5; transition: fill 0.2s; cursor: pointer; }
-        .body-part:hover { fill: #D6DBDF; }
+        .body-part:active { fill: #D6DBDF; } /* Touch feedback */
         .body-part.assessed { fill: #A9DFBF; stroke: #196F3D; }
         .body-part.injured { fill: #F5B7B1; stroke: #C0392B; }
         .body-part.critical-x { animation: pulse-red 0.8s infinite; fill: #E74C3C; }
@@ -165,20 +192,22 @@
         .finding-label {
             position: absolute; background: rgba(255,255,255,0.95); border: 1px solid #333;
             padding: 4px 8px; border-radius: 4px; font-size: 0.85rem; pointer-events: none;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2); max-width: 160px; text-align: center;
-            animation: popIn 0.3s; font-weight: 500;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2); max-width: 180px; text-align: center;
+            animation: popIn 0.3s; font-weight: 500; z-index: 20;
         }
 
         .info-panel {
             flex: 1; padding: 15px; overflow-y: auto; background: #fff;
             max-width: 400px; border-left: 1px solid #ccc;
             display: flex; flex-direction: column;
+            /* Ensure content isn't blocked at bottom */
+            padding-bottom: calc(15px + env(safe-area-inset-bottom));
         }
 
         .assessment-log {
             flex: 1; border: 1px solid #ccc; background: #FAFAFA; padding: 10px;
             margin-bottom: 10px; overflow-y: auto; font-family: 'Courier New', monospace;
-            font-size: 0.9rem; line-height: 1.5; min-height: 120px;
+            font-size: 0.9rem; line-height: 1.5; min-height: 100px;
         }
         .log-entry { margin-bottom: 6px; border-left: 3px solid transparent; padding-left: 6px; }
         .log-entry.warn { border-left-color: #C0392B; background: #FDEDEC; color: #922B21; }
@@ -190,79 +219,86 @@
             padding: 12px; background: #fff; border: 1px solid #999; border-radius: 4px;
             text-align: left; cursor: pointer; transition: all 0.1s;
             font-size: 0.95rem; display: flex; justify-content: space-between; align-items: center;
+            /* Mobile touch target */
+            min-height: 48px;
         }
-        .btn-action:hover { border-color: var(--primary); background: #f0f4f8; }
+        .btn-action:active { background: #f0f4f8; transform: scale(0.98); }
         .btn-action:disabled { opacity: 0.5; cursor: not-allowed; background: #eee; }
         .btn-action.priority { border: 2px solid var(--accent); color: var(--accent); background: #FDEDEC; font-weight: bold; }
 
         .triage-row { 
             display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px; 
             margin-top: auto; padding-top: 10px; border-top: 1px dashed #ccc; 
+            /* Ensure it stays at bottom but safe from home bar */
+            padding-bottom: env(safe-area-inset-bottom);
         }
         .btn-triage {
-            padding: 10px 0; color: white; border: none; border-radius: 4px;
+            padding: 12px 0; color: white; border: none; border-radius: 4px;
             font-weight: bold; cursor: pointer; font-size: 0.9rem;
         }
-        .btn-triage:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn-triage:active { opacity: 0.8; }
         .btn-triage.red { background: #C0392B; }
         .btn-triage.yellow { background: #F1C40F; color: #333; }
         .btn-triage.green { background: #27AE60; }
         .btn-triage.black { background: #2C3E50; }
 
+        /* Overlays & Modals */
         #crisis-overlay {
             position: fixed; top:0; left:0; width:100%; height:100%;
-            background: rgba(192, 57, 43, 0.95); z-index: 100;
+            background: rgba(192, 57, 43, 0.95); z-index: 550;
             display: none; flex-direction: column; align-items: center; justify-content: center;
-            animation: flash 0.5s infinite alternate;
+            animation: flash 0.5s infinite alternate; text-align: center; padding: 20px;
         }
-        .crisis-text { color: #fff; font-size: 2.5rem; font-weight: bold; margin-bottom: 20px; }
+        .crisis-text { color: #fff; font-size: 2rem; font-weight: bold; margin-bottom: 20px; }
         
-        /* Report Modal */
         #report-modal {
             position: fixed; top:0; left:0; width:100%; height:100%;
-            background: rgba(0,0,0,0.8); z-index: 200;
-            display: none; justify-content: center; align-items: center;
+            background: rgba(0,0,0,0.7); z-index: 600;
+            display: none; justify-content: center; align-items: center; padding: 20px;
         }
-        .report-card { background: white; padding: 30px; border-radius: 8px; width: 90%; max-width: 400px; position:relative; }
-        .report-input { width: 60px; padding: 5px; text-align: center; margin-left: 10px; font-size: 1.1rem; }
-        .report-row { margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; font-weight: bold; }
+        .report-card { 
+            background: white; padding: 20px; border-radius: 8px; width: 100%; max-width: 360px; 
+            position:relative; box-shadow: 0 5px 20px rgba(0,0,0,0.3); 
+            /* Ensure it fits in viewport */
+            max-height: 80vh; overflow-y: auto;
+        }
+        .report-input { width: 60px; padding: 8px; text-align: center; margin-left: 10px; font-size: 1.2rem; border: 1px solid #ccc; border-radius: 4px; }
+        .report-row { margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; font-weight: bold; font-size: 1.1rem; }
 
-        /* Ending Modal */
+        #feedback-modal {
+            position: fixed; top:0; left:0; width:100%; height:100%;
+            background: rgba(0,0,0,0.6); z-index: 550;
+            display: none; justify-content: center; align-items: center; padding: 20px;
+        }
+        .feedback-content {
+            background: #fff; padding: 20px; border-radius: 8px; max-width: 320px; width: 100%;
+            text-align: center; box-shadow: 0 5px 15px rgba(0,0,0,0.3); border: 3px solid #C0392B;
+        }
+
         #ending-modal {
             position: fixed; top:0; left:0; width:100%; height:100%;
-            background: rgba(255,255,255,0.98); z-index: 300;
+            background: rgba(255,255,255,0.98); z-index: 700;
             display: none; flex-direction: column; align-items: center;
             padding: 20px; overflow-y: auto;
         }
-        .ending-content { max-width: 600px; background: white; border: 1px solid #333; padding: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); width:100%; margin: 20px 0; }
-        .ending-title { font-size: 1.8rem; font-weight: bold; margin-bottom: 20px; color: var(--primary); text-align: center; border-bottom: 2px solid #ccc; padding-bottom: 10px; }
-        .ending-body { font-size: 1rem; line-height: 1.6; color: #444; margin-bottom: 20px; }
-        .case-review { margin-top: 15px; border-top: 1px dashed #ccc; padding-top: 10px; }
-        .case-item { margin-bottom: 8px; font-size: 0.9rem; padding: 5px; border-radius: 4px; }
-        .case-item.error { background: #FADBD8; border-left: 4px solid #C0392B; }
-        .case-item.ok { background: #EAFAF1; border-left: 4px solid #27AE60; }
+        .ending-content { max-width: 600px; width:100%; background: white; border: 1px solid #333; padding: 20px; margin: 20px 0; }
 
         #bleed-timer {
-            position: absolute; top: 10px; right: 60px;
-            background: #C0392B; color: white; padding: 5px 10px;
+            position: absolute; top: 10px; right: 70px;
+            background: #C0392B; color: white; padding: 4px 8px;
             font-weight: bold; font-family: monospace; border-radius: 4px;
-            display: none; animation: pulse-red 1s infinite;
+            display: none; animation: pulse-red 1s infinite; font-size: 0.9rem;
         }
 
         @keyframes pulse-red { 0% { fill: #E74C3C; opacity: 1; } 50% { fill: #F1948A; opacity: 0.5; } 100% { fill: #E74C3C; opacity: 1; } }
         @keyframes flash { from { opacity: 0.95; } to { opacity: 0.85; } }
         @keyframes popIn { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
-        @media (max-width: 768px) {
-            .pv-body { flex-direction: column; }
-            .body-container { height: 50%; border-right: none; border-bottom: 1px solid #ddd; }
-            .info-panel { max-width: 100%; height: 50%; }
-        }
     </style>
 </head>
 <body>
 
-    <!-- Floating Dashboard (Draggable) -->
+    <!-- Floating Dashboard (Draggable & High Z-Index) -->
     <div id="dashboard">
         <div class="dash-header" id="dash-header">
             <span>📊 戰情看板</span>
@@ -293,7 +329,7 @@
                 3. 初步處置 (Life-saving Interventions)<br>
                 4. 回報指揮中心 (Report)<br>
                 <br>
-                <small style="color:var(--accent)">⚠️ 注意：檢傷分類後傷患即會移出地圖。</small>
+                <small style="color:var(--accent)">⚠️ 注意：空襲會導致未處置的大出血傷患立即死亡。</small>
             </p>
             <button class="btn-start" onclick="app.startMission()">開始任務 Start</button>
         </div>
@@ -306,15 +342,24 @@
         <button class="btn-action" style="width:auto; justify-content:center; font-weight:bold; font-size:1.2rem; padding:15px 30px;" onclick="app.resolveCrisis()">🛡️ 尋找掩護 (Take Cover)</button>
     </div>
 
+    <!-- Feedback Modal -->
+    <div id="feedback-modal">
+        <div class="feedback-content">
+            <h3 style="color:#C0392B; margin-top:0;">檢傷判斷錯誤</h3>
+            <p id="feedback-text" style="color:#555; margin:15px 0; text-align:left; line-height:1.5;">...</p>
+            <button onclick="document.getElementById('feedback-modal').style.display='none'" style="padding:10px 30px; font-size:1rem; cursor:pointer; background:var(--primary); color:white; border:none; border-radius:6px;">確認</button>
+        </div>
+    </div>
+
     <!-- Report Modal -->
     <div id="report-modal">
         <div class="report-card">
-            <h2 style="text-align:center; color:var(--primary); margin-bottom:20px;">指揮中心回報</h2>
-            <p style="text-align:center; color:#666; margin-bottom:20px; font-size:0.9rem;">(請參考懸浮戰情看板填寫)</p>
-            <div class="report-row" style="color:#C0392B;">🔴 紅牌 (Red): <input type="number" id="rep-r" class="report-input" min="0"></div>
-            <div class="report-row" style="color:#F39C12;">🟡 黃牌 (Yellow): <input type="number" id="rep-y" class="report-input" min="0"></div>
-            <div class="report-row" style="color:#27AE60;">🟢 綠牌 (Green): <input type="number" id="rep-g" class="report-input" min="0"></div>
-            <div class="report-row" style="color:#2C3E50;">⚫ 黑牌 (Black): <input type="number" id="rep-b" class="report-input" min="0"></div>
+            <h2 style="text-align:center; color:var(--primary); margin-bottom:10px;">指揮中心回報</h2>
+            <p style="text-align:center; color:#666; margin-bottom:15px; font-size:0.85rem;">(請參考懸浮戰情看板填寫)</p>
+            <div class="report-row" style="color:#C0392B;">🔴 紅牌 (Red): <input type="number" id="rep-r" class="report-input" min="0" inputmode="numeric"></div>
+            <div class="report-row" style="color:#F39C12;">🟡 黃牌 (Yellow): <input type="number" id="rep-y" class="report-input" min="0" inputmode="numeric"></div>
+            <div class="report-row" style="color:#27AE60;">🟢 綠牌 (Green): <input type="number" id="rep-g" class="report-input" min="0" inputmode="numeric"></div>
+            <div class="report-row" style="color:#2C3E50;">⚫ 黑牌 (Black): <input type="number" id="rep-b" class="report-input" min="0" inputmode="numeric"></div>
             <button class="btn-action" style="width:100%; justify-content:center; background:var(--primary); color:white; font-weight:bold; margin-top:20px;" onclick="app.submitReport()">發送回報 (Send)</button>
         </div>
     </div>
@@ -332,7 +377,7 @@
 
     <!-- Header -->
     <header>
-        <h1>EMT-1 SIM V27</h1>
+        <h1>EMT-1 SIM V28</h1>
         <button id="mute-toggle" class="mute-btn" onclick="audioSys.toggleMute()">🔊 音效</button>
     </header>
 
@@ -358,21 +403,20 @@
             <div class="pv-header">
                 <span id="case-title" style="font-weight:bold; font-family:'Roboto Mono';">CASE: ???</span>
                 <div id="bleed-timer">60s</div>
-                <button onclick="app.returnToScene()" style="padding:6px 12px; border:1px solid #999; background:#fff; cursor:pointer; border-radius:4px;">↩ 返回現場</button>
+                <button onclick="app.returnToScene()" style="padding:6px 12px; border:1px solid #999; background:#fff; cursor:pointer; border-radius:4px;">↩ 返回</button>
             </div>
             
             <div class="pv-body">
                 <div class="body-container">
                     <svg class="body-svg" viewBox="0 0 200 450" xmlns="http://www.w3.org/2000/svg">
-                        <g id="body-group">
-                            <circle id="part-head" class="body-part" cx="100" cy="50" r="35" onclick="app.assessPart('head')"/>
-                            <path id="part-chest" class="body-part" d="M 65 90 L 135 90 L 130 160 L 70 160 Z" onclick="app.assessPart('chest')"/>
-                            <path id="part-abdomen" class="body-part" d="M 70 160 L 130 160 L 125 210 L 75 210 Z" onclick="app.assessPart('abdomen')"/>
-                            <rect id="part-arm-l" class="body-part" x="25" y="95" width="35" height="110" rx="10" onclick="app.assessPart('arm_l')"/>
-                            <rect id="part-arm-r" class="body-part" x="140" y="95" width="35" height="110" rx="10" onclick="app.assessPart('arm_r')"/>
-                            <rect id="part-leg-l" class="body-part" x="65" y="215" width="32" height="160" rx="10" onclick="app.assessPart('leg_l')"/>
-                            <rect id="part-leg-r" class="body-part" x="103" y="215" width="32" height="160" rx="10" onclick="app.assessPart('leg_r')"/>
-                        </g>
+                        <!-- Clickable Zones with Explicit IDs -->
+                        <circle id="part-head" class="body-part" cx="100" cy="50" r="35" onclick="app.assessPart('head')"/>
+                        <path id="part-chest" class="body-part" d="M 65 90 L 135 90 L 130 160 L 70 160 Z" onclick="app.assessPart('chest')"/>
+                        <path id="part-abdomen" class="body-part" d="M 70 160 L 130 160 L 125 210 L 75 210 Z" onclick="app.assessPart('abdomen')"/>
+                        <rect id="part-arm-l" class="body-part" x="25" y="95" width="35" height="110" rx="10" onclick="app.assessPart('arm_l')"/>
+                        <rect id="part-arm-r" class="body-part" x="140" y="95" width="35" height="110" rx="10" onclick="app.assessPart('arm_r')"/>
+                        <rect id="part-leg-l" class="body-part" x="65" y="215" width="32" height="160" rx="10" onclick="app.assessPart('leg_l')"/>
+                        <rect id="part-leg-r" class="body-part" x="103" y="215" width="32" height="160" rx="10" onclick="app.assessPart('leg_r')"/>
                     </svg>
                     <div id="body-overlays"></div>
                 </div>
@@ -395,21 +439,21 @@
 
     <script>
         const CASES = [
-            { id: "MCI-01", type: "Black", title: "C區-被水泥壓住", findings: { head: {text:"頭顱變形，腦組織外溢，無呼吸", icon:"💀"}, chest: {text:"無起伏", icon:""}, abdomen: {text:"無法評估", icon:""}, arm_l: {text:"無反應", icon:""}, arm_r: {text:"無反應", icon:""}, leg_l: {text:"被壓住", icon:""}, leg_r: {text:"被壓住", icon:""} }, is_x: false, feedback: "傷患有明顯死亡徵象(腦組織外溢)，不予急救。" },
-            { id: "MCI-02", type: "Red", title: "B區-呼吸急促抓喉嚨", findings: { head: {text:"眉毛燒焦，口中有碳粒，發出喘鳴聲", icon:"🔥"}, chest: {text:"呼吸32次/分，頸靜脈怒張", icon:"⚠️"}, abdomen: {text:"無外傷", icon:""}, arm_l: {text:"二度燒傷", icon:""}, arm_r: {text:"二度燒傷", icon:""}, leg_l: {text:"無外傷", icon:""}, leg_r: {text:"無外傷", icon:""} }, is_x: false, feedback: "呼吸速率 > 30 且有呼吸道燒灼傷，屬優先救治。" },
-            { id: "MCI-03", type: "Red", title: "B區-尖叫大出血", findings: { head: {text:"意識清楚，尖叫呼救", icon:"😨"}, chest: {text:"呼吸26次/分，膚色蒼白", icon:""}, abdomen: {text:"無外傷", icon:""}, arm_l: {text:"無外傷", icon:""}, arm_r: {text:"無外傷", icon:""}, leg_l: {text:"無外傷", icon:""}, leg_r: {text:"🩸 右大腿截肢，噴射狀出血！", icon:"🩸", is_x: true} }, is_x: true, death_timer: 60, feedback: "大出血需立即止血，屬危急個案。" },
-            { id: "MCI-04", type: "Red", title: "C區-半掩埋", findings: { head: {text:"意識不清(GCS 9)，呼吸道有分泌物", icon:"🥴"}, chest: {text:"呼吸淺快 8次/分", icon:""}, abdomen: {text:"壓痛", icon:""}, arm_l: {text:"擦傷", icon:""}, arm_r: {text:"擦傷", icon:""}, leg_l: {text:"被瓦礫壓住", icon:""}, leg_r: {text:"被瓦礫壓住", icon:""} }, is_x: false, feedback: "意識不清 (GCS<10) 且呼吸速率異常 (<10)，屬紅牌。" },
-            { id: "MCI-05", type: "Yellow", title: "A區-坐著抱手臂", findings: { head: {text:"意識清楚，主訴手痛", icon:"🙂"}, chest: {text:"呼吸20次/分", icon:""}, abdomen: {text:"軟", icon:""}, arm_l: {text:"左上臂變形，無大出血", icon:"🦴"}, arm_r: {text:"無外傷", icon:""}, leg_l: {text:"玻璃割傷", icon:""}, leg_r: {text:"無外傷", icon:""} }, is_x: false, feedback: "生命徵象穩定，無法行走但無立即生命危險。" },
-            { id: "MCI-06", type: "Yellow", title: "A區-胸痛", findings: { head: {text:"意識清楚", icon:""}, chest: {text:"前胸挫傷，呼吸22次/分，痛", icon:"🩹"}, abdomen: {text:"軟", icon:""}, arm_l: {text:"無外傷", icon:""}, arm_r: {text:"無外傷", icon:""}, leg_l: {text:"無外傷", icon:""}, leg_r: {text:"無外傷", icon:""} }, is_x: false, feedback: "生命徵象穩定，雖有胸痛但無氣胸徵象。" },
-            { id: "MCI-07", type: "Yellow", title: "B區-跌坐喊痛", findings: { head: {text:"意識清楚，表情痛苦", icon:""}, chest: {text:"呼吸20次/分", icon:""}, abdomen: {text:"骨盆擠壓痛，無法站立", icon:"⚡"}, arm_l: {text:"無外傷", icon:""}, arm_r: {text:"無外傷", icon:""}, leg_l: {text:"無外傷", icon:""}, leg_r: {text:"無外傷", icon:""} }, is_x: false, feedback: "骨盆骨折但無休克徵象，屬黃牌。" },
-            { id: "MCI-08", type: "Yellow", title: "A區-摀肚子", findings: { head: {text:"意識清楚，冒冷汗", icon:""}, chest: {text:"呼吸24次/分", icon:""}, abdomen: {text:"腸道外露 (Evisceration)", icon:"🌭"}, arm_l: {text:"無外傷", icon:""}, arm_r: {text:"無外傷", icon:""}, leg_l: {text:"無外傷", icon:""}, leg_r: {text:"無外傷", icon:""} }, is_x: false, feedback: "臟器外露需處置，但呼吸循環尚可 (延後後送)。" },
-            { id: "MCI-09", type: "Red", title: "B區-呼吸困難", findings: { head: {text:"意識清楚但焦躁", icon:"😰"}, chest: {text:"右胸疼痛，呼吸36次/分 (氣胸惡化)", icon:"📉"}, abdomen: {text:"軟", icon:""}, arm_l: {text:"無外傷", icon:""}, arm_r: {text:"無外傷", icon:""}, leg_l: {text:"無外傷", icon:""}, leg_r: {text:"無外傷", icon:""} }, is_x: false, crisis_mode: true, feedback: "呼吸速率 > 30 (張力性氣胸惡化)，應立即升級為紅牌。" },
-            { id: "MCI-10", type: "Green", title: "A區-走動", findings: { head: {text:"意識清楚", icon:""}, chest: {text:"呼吸正常", icon:""}, abdomen: {text:"軟", icon:""}, arm_l: {text:"擦傷", icon:""}, arm_r: {text:"無", icon:""}, leg_l: {text:"無", icon:""}, leg_r: {text:"無", icon:""} }, is_x: false, feedback: "可行走且無主訴嚴重不適，屬綠牌。" },
-            { id: "MCI-11", type: "Green", title: "A區-走動", findings: { head: {text:"意識清楚", icon:""}, chest: {text:"呼吸正常", icon:""}, abdomen: {text:"軟", icon:""}, arm_l: {text:"無", icon:""}, arm_r: {text:"扭傷", icon:""}, leg_l: {text:"無", icon:""}, leg_r: {text:"無", icon:""} }, is_x: false, feedback: "可行走，屬綠牌。" },
-            { id: "MCI-12", type: "Green", title: "A區-驚嚇", findings: { head: {text:"驚嚇過度，但在哭", icon:"😭"}, chest: {text:"呼吸快但正常", icon:""}, abdomen: {text:"軟", icon:""}, arm_l: {text:"無", icon:""}, arm_r: {text:"無", icon:""}, leg_l: {text:"無", icon:""}, leg_r: {text:"無", icon:""} }, is_x: false, feedback: "心理驚嚇但無外傷，屬綠牌。" },
-            { id: "MCI-13", type: "Green", title: "A區-走動", findings: { head: {text:"意識清楚", icon:""}, chest: {text:"呼吸正常", icon:""}, abdomen: {text:"軟", icon:""}, arm_l: {text:"無", icon:""}, arm_r: {text:"無", icon:""}, leg_l: {text:"擦傷", icon:""}, leg_r: {text:"無", icon:""} }, is_x: false, feedback: "輕微擦傷可行走，屬綠牌。" },
-            { id: "MCI-14", type: "Green", title: "A區-倒地抽搐", findings: { head: {text:"E1V1M1 (抽搐中)", icon:"⚡"}, chest: {text:"呼吸淺快", icon:""}, abdomen: {text:"軟", icon:""}, arm_l: {text:"抽搐", icon:""}, arm_r: {text:"抽搐", icon:""}, leg_l: {text:"抽搐", icon:""}, leg_r: {text:"抽搐", icon:""} }, is_x: false, crisis_mode: true, feedback: "癲癇發作意識喪失，無法行走，應升級為紅牌。" },
-            { id: "MCI-15", type: "Green", title: "A區-走動", findings: { head: {text:"意識清楚", icon:""}, chest: {text:"呼吸正常", icon:""}, abdomen: {text:"軟", icon:""}, arm_l: {text:"無", icon:""}, arm_r: {text:"無", icon:""}, leg_l: {text:"無", icon:""}, leg_r: {text:"扭傷", icon:""} }, is_x: false, feedback: "可行走，屬綠牌。" }
+            { id: "MCI-01", type: "Black", title: "C區-被水泥壓住", findings: { head: {text:"頭顱變形，腦組織外溢，無呼吸", icon:"💀"}, chest: {text:"無起伏", icon:""}, abdomen: {text:"無法評估", icon:""}, arm_l: {text:"無反應", icon:""}, arm_r: {text:"無反應", icon:""}, leg_l: {text:"被壓住", icon:""}, leg_r: {text:"被壓住", icon:""} }, is_x: false, feedback: "錯誤。傷患有明顯死亡徵象(腦組織外溢)且無呼吸，應為黑牌。" },
+            { id: "MCI-02", type: "Red", title: "B區-呼吸急促抓喉嚨", findings: { head: {text:"眉毛燒焦，口中有碳粒，發出喘鳴聲", icon:"🔥"}, chest: {text:"呼吸32次/分，頸靜脈怒張", icon:"⚠️"}, abdomen: {text:"無外傷", icon:""}, arm_l: {text:"二度燒傷", icon:""}, arm_r: {text:"二度燒傷", icon:""}, leg_l: {text:"無外傷", icon:""}, leg_r: {text:"無外傷", icon:""} }, is_x: false, feedback: "錯誤。呼吸速率 > 30 且有呼吸道燒灼傷，屬優先救治的紅牌。" },
+            { id: "MCI-03", type: "Red", title: "B區-尖叫大出血", findings: { head: {text:"意識清楚，尖叫呼救", icon:"😨"}, chest: {text:"呼吸26次/分，膚色蒼白", icon:""}, abdomen: {text:"無外傷", icon:""}, arm_l: {text:"無外傷", icon:""}, arm_r: {text:"無外傷", icon:""}, leg_l: {text:"無外傷", icon:""}, leg_r: {text:"🩸 右大腿截肢，噴射狀出血！", icon:"🩸", is_x: true} }, is_x: true, death_timer: 60, feedback: "錯誤。傷患有危及生命的大出血(X)，需立即處置並優先後送，屬紅牌。" },
+            { id: "MCI-04", type: "Red", title: "C區-半掩埋", findings: { head: {text:"意識不清(GCS 9)，呼吸道有分泌物", icon:"🥴"}, chest: {text:"呼吸淺快 8次/分", icon:""}, abdomen: {text:"壓痛", icon:""}, arm_l: {text:"擦傷", icon:""}, arm_r: {text:"擦傷", icon:""}, leg_l: {text:"被瓦礫壓住", icon:""}, leg_r: {text:"被瓦礫壓住", icon:""} }, is_x: false, feedback: "錯誤。意識不清 (GCS<10) 且呼吸速率異常 (<10)，屬紅牌。" },
+            { id: "MCI-05", type: "Yellow", title: "A區-坐著抱手臂", findings: { head: {text:"意識清楚，主訴手痛", icon:"🙂"}, chest: {text:"呼吸20次/分", icon:""}, abdomen: {text:"軟", icon:""}, arm_l: {text:"左上臂變形，無大出血", icon:"🦴"}, arm_r: {text:"無外傷", icon:""}, leg_l: {text:"玻璃割傷", icon:""}, leg_r: {text:"無外傷", icon:""} }, is_x: false, feedback: "錯誤。生命徵象穩定，無法行走但無立即生命危險，屬黃牌。" },
+            { id: "MCI-06", type: "Yellow", title: "A區-胸痛", findings: { head: {text:"意識清楚", icon:""}, chest: {text:"前胸挫傷，呼吸22次/分，痛", icon:"🩹"}, abdomen: {text:"軟", icon:""}, arm_l: {text:"無外傷", icon:""}, arm_r: {text:"無外傷", icon:""}, leg_l: {text:"無外傷", icon:""}, leg_r: {text:"無外傷", icon:""} }, is_x: false, feedback: "錯誤。生命徵象穩定，雖有胸痛但無氣胸徵象，屬黃牌。" },
+            { id: "MCI-07", type: "Yellow", title: "B區-跌坐喊痛", findings: { head: {text:"意識清楚，表情痛苦", icon:""}, chest: {text:"呼吸20次/分", icon:""}, abdomen: {text:"骨盆擠壓痛，無法站立", icon:"⚡"}, arm_l: {text:"無外傷", icon:""}, arm_r: {text:"無外傷", icon:""}, leg_l: {text:"無外傷", icon:""}, leg_r: {text:"無外傷", icon:""} }, is_x: false, feedback: "錯誤。骨盆骨折但無休克徵象，屬黃牌。" },
+            { id: "MCI-08", type: "Yellow", title: "A區-摀肚子", findings: { head: {text:"意識清楚，冒冷汗", icon:""}, chest: {text:"呼吸24次/分", icon:""}, abdomen: {text:"腸道外露 (Evisceration)", icon:"🌭"}, arm_l: {text:"無外傷", icon:""}, arm_r: {text:"無外傷", icon:""}, leg_l: {text:"無外傷", icon:""}, leg_r: {text:"無外傷", icon:""} }, is_x: false, feedback: "錯誤。臟器外露需處置，但目前呼吸循環尚可 (延後後送)。" },
+            { id: "MCI-09", type: "Red", title: "B區-呼吸困難", findings: { head: {text:"意識清楚但焦躁", icon:"😰"}, chest: {text:"右胸疼痛，呼吸36次/分 (氣胸惡化)", icon:"📉"}, abdomen: {text:"軟", icon:""}, arm_l: {text:"無外傷", icon:""}, arm_r: {text:"無外傷", icon:""}, leg_l: {text:"無外傷", icon:""}, leg_r: {text:"無外傷", icon:""} }, is_x: false, crisis_mode: true, feedback: "錯誤。呼吸速率 > 30 (張力性氣胸惡化)，應立即升級為紅牌。" },
+            { id: "MCI-10", type: "Green", title: "A區-走動", findings: { head: {text:"意識清楚", icon:""}, chest: {text:"呼吸正常", icon:""}, abdomen: {text:"軟", icon:""}, arm_l: {text:"擦傷", icon:""}, arm_r: {text:"無", icon:""}, leg_l: {text:"無", icon:""}, leg_r: {text:"無", icon:""} }, is_x: false, feedback: "錯誤。可行走且無主訴嚴重不適，屬綠牌。" },
+            { id: "MCI-11", type: "Green", title: "A區-走動", findings: { head: {text:"意識清楚", icon:""}, chest: {text:"呼吸正常", icon:""}, abdomen: {text:"軟", icon:""}, arm_l: {text:"無", icon:""}, arm_r: {text:"扭傷", icon:""}, leg_l: {text:"無", icon:""}, leg_r: {text:"無", icon:""} }, is_x: false, feedback: "錯誤。可行走，屬綠牌。" },
+            { id: "MCI-12", type: "Green", title: "A區-驚嚇", findings: { head: {text:"驚嚇過度，但在哭", icon:"😭"}, chest: {text:"呼吸快但正常", icon:""}, abdomen: {text:"軟", icon:""}, arm_l: {text:"無", icon:""}, arm_r: {text:"無", icon:""}, leg_l: {text:"無", icon:""}, leg_r: {text:"無", icon:""} }, is_x: false, feedback: "錯誤。心理驚嚇但無外傷，屬綠牌。" },
+            { id: "MCI-13", type: "Green", title: "A區-走動", findings: { head: {text:"意識清楚", icon:""}, chest: {text:"呼吸正常", icon:""}, abdomen: {text:"軟", icon:""}, arm_l: {text:"無", icon:""}, arm_r: {text:"無", icon:""}, leg_l: {text:"擦傷", icon:""}, leg_r: {text:"無", icon:""} }, is_x: false, feedback: "錯誤。輕微擦傷可行走，屬綠牌。" },
+            { id: "MCI-14", type: "Green", title: "A區-倒地抽搐", findings: { head: {text:"E1V1M1 (抽搐中)", icon:"⚡"}, chest: {text:"呼吸淺快", icon:""}, abdomen: {text:"軟", icon:""}, arm_l: {text:"抽搐", icon:""}, arm_r: {text:"抽搐", icon:""}, leg_l: {text:"抽搐", icon:""}, leg_r: {text:"抽搐", icon:""} }, is_x: false, crisis_mode: true, feedback: "錯誤。癲癇發作意識喪失，無法行走，應升級為紅牌。" },
+            { id: "MCI-15", type: "Green", title: "A區-走動", findings: { head: {text:"意識清楚", icon:""}, chest: {text:"呼吸正常", icon:""}, abdomen: {text:"軟", icon:""}, arm_l: {text:"無", icon:""}, arm_r: {text:"無", icon:""}, leg_l: {text:"無", icon:""}, leg_r: {text:"扭傷", icon:""} }, is_x: false, feedback: "錯誤。可行走，屬綠牌。" }
         ];
 
         const app = {
@@ -432,6 +476,7 @@
 
             startMission: function() {
                 document.getElementById('start-screen').style.display = 'none';
+                document.getElementById('dashboard').style.display = 'block'; // Show dashboard ONLY after start
                 this.initDraggable();
                 this.renderSceneMap();
                 audioSys.init();
@@ -445,9 +490,9 @@
                     const s = this.state.missionTime % 60;
                     const display = `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
                     const el = document.getElementById('mission-timer');
-                    el.innerText = display;
+                    if(el) el.innerText = display;
                     
-                    if(this.state.missionTime <= 60) el.classList.add('urgent');
+                    if(this.state.missionTime <= 60 && el) el.classList.add('urgent');
                     if(this.state.missionTime <= 0) {
                         clearInterval(this.state.missionTimerId);
                         alert("任務時間結束！強制進入回報階段。");
@@ -470,18 +515,38 @@
                 const header = document.getElementById('dash-header');
                 let isDragging = false, startX, startY, initialLeft, initialTop;
 
-                header.onmousedown = (e) => {
+                const startDrag = (clientX, clientY) => {
                     isDragging = true;
-                    startX = e.clientX;
-                    startY = e.clientY;
+                    startX = clientX;
+                    startY = clientY;
                     initialLeft = dash.offsetLeft;
                     initialTop = dash.offsetTop;
-                    document.onmouseup = () => { isDragging = false; document.onmouseup = null; document.onmousemove = null; };
-                    document.onmousemove = (e) => {
-                        if (!isDragging) return;
-                        dash.style.left = (initialLeft + e.clientX - startX) + 'px';
-                        dash.style.top = (initialTop + e.clientY - startY) + 'px';
-                    };
+                };
+
+                const doDrag = (clientX, clientY) => {
+                    if (!isDragging) return;
+                    dash.style.left = (initialLeft + clientX - startX) + 'px';
+                    dash.style.top = (initialTop + clientY - startY) + 'px';
+                };
+
+                const endDrag = () => { isDragging = false; };
+
+                // Mouse events
+                header.onmousedown = (e) => { startDrag(e.clientX, e.clientY); };
+                document.onmouseup = endDrag;
+                document.onmousemove = (e) => { doDrag(e.clientX, e.clientY); };
+
+                // Touch events
+                header.ontouchstart = (e) => { 
+                    const touch = e.touches[0];
+                    startDrag(touch.clientX, touch.clientY); 
+                    // Don't prevent default too aggressively or clicks might fail, but for header drag it's usually safe
+                };
+                document.ontouchend = endDrag;
+                document.ontouchmove = (e) => { 
+                    if(isDragging) e.preventDefault(); // Prevent scroll when dragging
+                    const touch = e.touches[0];
+                    doDrag(touch.clientX, touch.clientY); 
                 };
             },
 
@@ -601,7 +666,8 @@
             triggerDeath: function(reason) {
                 if (this.state.timerId) clearInterval(this.state.timerId);
                 this.state.isDead = true;
-                this.state.currentCase.type = 'Black'; // Actual state changes to Black
+                this.state.currentCase.type = 'Black'; 
+                this.state.currentCase.feedback = "正確。傷患已無生命徵象，MCI 判定為黑牌。";
                 this.log(`💀 傷患因${reason}，心跳停止 (OHCA)。`, 'death');
                 this.log(`⚠️ 進入 OHCA 流程：MCI 資源有限，應判定為黑牌。`, 'sys');
                 audioSys.playTone('wrong');
@@ -615,6 +681,7 @@
                 const c = this.state.currentCase;
                 const data = c.findings[partId];
                 
+                // XABCDE Rule check (Simplified)
                 const hasX = Object.values(c.findings).some(f => f.is_x);
                 if (hasX && !this.state.x_treated && !data.is_x) {
                     this.log(`❌ 違反 XABCDE！發現大出血，應優先止血！`, 'warn');
@@ -646,6 +713,7 @@
                 label.className = 'finding-label';
                 label.innerText = text.length > 12 ? text.substring(0,12)+"..." : text;
                 const id = el.id;
+                // Rough positioning logic
                 if(id.includes('head')) { label.style.top = '10%'; label.style.left = '50%'; }
                 else if(id.includes('chest')) { label.style.top = '25%'; label.style.left = '50%'; }
                 else if(id.includes('abdomen')) { label.style.top = '40%'; label.style.left = '50%'; }
@@ -725,8 +793,7 @@
                 if (this.state.inCrisis) return;
                 const c = this.state.currentCase;
                 
-                // NO IMMEDIATE FEEDBACK IN V26
-                // Just record choice and return
+                // NO FEEDBACK during tagging.
                 this.state.completedIds.push(c.id);
                 this.state.userDecisions[c.id] = color;
                 
@@ -751,7 +818,7 @@
                         document.getElementById('crisis-overlay').style.display = 'flex';
                         audioSys.playTone('alarm');
                         
-                        // Post-Raid Consequence: Untreated X gets worse -> Dead
+                        // Post-Raid Consequence
                         if (this.state.currentCase.is_x && !this.state.x_treated) {
                             setTimeout(() => {
                                 if (this.state.inCrisis) return; 
@@ -812,11 +879,7 @@
             showFinalReport: function() {
                 document.getElementById('scene-view').style.display = 'none';
                 document.getElementById('patient-view').style.display = 'none';
-                document.getElementById('dashboard').style.display = 'block'; // Ensure dashboard visible
                 document.getElementById('report-modal').style.display = 'flex';
-                
-                // Clear mission timer
-                clearInterval(this.state.missionTimerId);
             },
 
             submitReport: function() {
@@ -837,22 +900,19 @@
 
             generateEnding: function() {
                 document.getElementById('report-modal').style.display = 'none';
-                document.getElementById('dashboard').style.display = 'none';
+                document.getElementById('dashboard').style.display = 'none'; // Hide floating dash in ending
                 
                 const modal = document.getElementById('ending-modal');
                 const title = document.getElementById('ending-title');
                 const body = document.getElementById('ending-body');
                 const review = document.getElementById('ending-review');
                 
-                // Calculate Score & Generate Narrative
                 let correctCount = 0;
                 let criticalFail = false;
                 let reviewHtml = "";
 
                 CASES.forEach(c => {
                     const userChoice = this.state.userDecisions[c.id] || "Unknown";
-                    // Dynamic Type Check: If patient died or deteriorated, use that type
-                    // The 'c.type' in CASES is updated in real-time by crisis functions
                     const actualType = c.type;
                     
                     let statusClass = "error";
@@ -863,7 +923,6 @@
                         statusClass = "ok";
                         reviewHtml += `<div class="case-item ok">✅ ${c.id}: 判斷正確 (${actualType})</div>`;
                     } else {
-                        // Generate Consequence Text
                         if (actualType === 'Red' && userChoice === 'Green') {
                             consequence = "嚴重誤判！紅牌傷患被滯留綠區，因延誤後送而死亡。";
                             criticalFail = true;
@@ -889,7 +948,6 @@
                 review.innerHTML = reviewHtml;
                 modal.style.display = 'flex';
 
-                // Determine Ending Type
                 if (correctCount === 15) {
                     title.innerHTML = "🏆 完美結局：傳奇指揮官";
                     title.style.color = "#27AE60";
