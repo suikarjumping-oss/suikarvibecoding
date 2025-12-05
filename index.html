@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>EMT-1 戰術兵推 V44 | 完美修復版</title>
+    <title>EMT-1 戰術兵推 V45 | 止血帶修復版</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
         /* --- Design System --- */
@@ -177,12 +177,12 @@
 
     <div id="start-screen" class="modal-overlay" style="display:flex; background:#E6E2D8; z-index:4000;">
         <div class="report-card" style="max-width:400px; text-align:center;">
-            <h1 style="font-size:1.5rem; margin-bottom:15px; color:var(--primary);">EMT-1 戰術兵推 V44</h1>
+            <h1 style="font-size:1.5rem; margin-bottom:15px; color:var(--primary);">EMT-1 戰術兵推 V45</h1>
             <p style="color:#666; margin-bottom:20px; line-height:1.6; text-align:left;">
                 <strong>任務代號：</strong> 1130 空襲事件<br>
                 <strong>傷患總數：</strong> 15 名<br>
                 <strong>任務時限：</strong> <span style="color:#C0392B; font-weight:bold;">5 分鐘 (壓力測試)</span><br>
-                <small style="color:var(--accent)">⚠️ 修正：採用事件委派技術，徹底修復資料殘留問題。</small>
+                <small style="color:var(--accent)">⚠️ 修正：止血帶按鈕已設為優先顯示。</small>
             </p>
             <button class="btn-action" style="background:var(--primary); color:white; justify-content:center; font-weight:bold;" onclick="game.start()">開始任務 Start</button>
         </div>
@@ -206,7 +206,7 @@
             <div class="report-row" style="color:#F39C12;">🟡 黃牌 (Yellow): <input type="number" id="rep-y" class="report-input" min="0" inputmode="numeric"></div>
             <div class="report-row" style="color:#27AE60;">🟢 綠牌 (Green): <input type="number" id="rep-g" class="report-input" min="0" inputmode="numeric"></div>
             <div class="report-row" style="color:#2C3E50;">⚫ 黑牌 (Black): <input type="number" id="rep-b" class="report-input" min="0" inputmode="numeric"></div>
-            <button class="btn-action" style="justify-content:center; background:var(--primary); color:white; font-weight:bold; margin-top:20px;" onclick="game.submitReport()">發送回報 (Send)</button>
+            <button class="btn-action" style="width:100%; justify-content:center; background:var(--primary); color:white; font-weight:bold; margin-top:20px;" onclick="game.submitReport()">發送回報 (Send)</button>
         </div>
     </div>
 
@@ -220,7 +220,7 @@
         </div>
     </div>
 
-    <header><h1>EMT-1 戰術兵推 V44</h1><div class="top-right-controls"><button id="mute-toggle" class="mute-btn" onclick="audioSys.toggleMute()">🔊</button></div></header>
+    <header><h1>EMT-1 戰術兵推 V45</h1><div class="top-right-controls"><button id="mute-toggle" class="mute-btn" onclick="audioSys.toggleMute()">🔊</button></div></header>
 
     <main id="main-container">
         <div id="scene-view">
@@ -383,7 +383,7 @@
                     const dot = document.createElement('div');
                     dot.className = 'patient-dot';
                     dot.innerText = `P${idx+1}`;
-                    dot.dataset.id = c.id; // Critical: Store ID in DOM
+                    dot.dataset.id = c.id; 
                     
                     const s = slots[idx % slots.length];
                     dot.style.top = (s.t + (Math.random()-0.5)*2) + '%';
@@ -407,26 +407,22 @@
 
             // Enter Case
             enterCase: function(id) {
-                // Hard Reset of Patient View State
-                this.state.currentId = id;
+                // Hard Reset
+                this.clearPatientState();
+
                 const c = this.data.find(x => x.id === id);
                 if (!c) return;
 
-                // Reset UI
-                document.querySelectorAll('.body-part').forEach(el => el.classList.remove('assessed', 'injured', 'critical-x'));
-                document.getElementById('body-overlays').innerHTML = '';
-                document.getElementById('log-display').innerHTML = `<div class="log-entry">>> 接觸傷患: ${c.title}</div>`;
-                document.getElementById('action-panel').innerHTML = '';
-                document.getElementById('case-title').innerText = `CASE: ${c.id}`;
-
-                // Init Actions Array if needed
-                if (!this.state.actions[id]) this.state.actions[id] = [];
-
+                this.state.currentId = id;
+                this.state.log = [`>> 接觸傷患: ${c.title}`];
+                if(!this.state.actions[c.id]) this.state.actions[c.id] = [];
+                
                 // Switch View
                 document.getElementById('scene-view').style.display = 'none';
                 document.getElementById('patient-view').style.display = 'flex';
-                document.getElementById('triage-bar').style.display = 'grid';
-
+                document.getElementById('triage-bar').style.display = 'grid'; 
+                document.getElementById('case-title').innerText = `CASE: ${c.id}`;
+                
                 // Check Visuals (X)
                 if (c.is_x) {
                     const xKey = Object.keys(c.findings).find(k => c.findings[k].is_x);
@@ -439,7 +435,6 @@
                     let timeLeft = c.death_timer;
                     document.getElementById('bleed-timer').style.display = 'block';
                     document.getElementById('bleed-timer').innerText = timeLeft + 's';
-                    if (this.timers.bleed) clearInterval(this.timers.bleed);
                     this.timers.bleed = setInterval(() => {
                         if (this.state.actions[id] && this.state.actions[id].includes('tq')) { clearInterval(this.timers.bleed); return; }
                         timeLeft--;
@@ -452,6 +447,18 @@
                 } else {
                     document.getElementById('bleed-timer').style.display = 'none';
                 }
+
+                this.updateLog();
+                // FIX: Immediately render actions to show TQ button if detected visually
+                this.renderActionButtons(c);
+            },
+
+            clearPatientState: function() {
+                this.state.currentId = null;
+                document.querySelectorAll('.body-part').forEach(el => el.classList.remove('assessed', 'injured', 'critical-x'));
+                document.getElementById('body-overlays').innerHTML = '';
+                document.getElementById('action-panel').innerHTML = '';
+                if(this.timers.bleed) clearInterval(this.timers.bleed);
             },
 
             // Assess Part
@@ -487,18 +494,17 @@
                 const acts = this.state.actions[c.id] || [];
                 
                 const hasX = Object.values(c.findings).some(f => f.is_x);
-                // Priority X
+                // Priority X: Show TQ button if X exists and not treated
                 if (hasX && !acts.includes('tq')) {
                     const btn = document.createElement('button');
                     btn.className = 'btn-action priority';
                     btn.innerText = "🩸 使用止血帶 (CAT)";
                     btn.onclick = () => this.doAction('tq');
                     panel.appendChild(btn);
-                    return; // Block other actions
+                    return; // Block other actions until X treated
                 }
 
-                // Other Actions based on findings
-                // Simple logic: if head assessed, show Airway options
+                // Other Actions
                 const head = document.querySelector('[data-part="head"]');
                 if (head && head.classList.contains('assessed')) {
                      if (!acts.includes('opa')) {
@@ -554,8 +560,8 @@
 
             // Utils
             returnToScene: function() {
-                if (this.timers.bleed) clearInterval(this.timers.bleed);
-                this.state.currentId = null; // Clear ID
+                this.clearPatientState();
+                document.getElementById('triage-bar').style.display = 'none';
                 this.renderSceneMap();
             },
             switchTab: function(tab) {
@@ -573,12 +579,22 @@
                 div.className = `log-entry ${type}`;
                 div.innerText = msg;
                 d.appendChild(div);
-                d.scrollTop = d.scrollHeight;
+            },
+            updateLog: function() {
+                 const d = document.getElementById('log-display');
+                 d.innerHTML = '';
+                 this.state.log.forEach(l => {
+                     const div = document.createElement('div');
+                     div.className = 'log-entry';
+                     if(l.includes('❌')||l.includes('⚠️')) div.classList.add('warn');
+                     div.innerText = l;
+                     d.appendChild(div);
+                 });
+                 d.scrollTop = d.scrollHeight;
             },
             showLabel: function(el, text) {
                 const label = document.createElement('div');
                 label.className = 'finding-label'; label.innerText = text;
-                // Simple positioning
                 const rect = el.getBoundingClientRect();
                 const parent = document.querySelector('.body-container').getBoundingClientRect();
                 label.style.top = (rect.top - parent.top + 20) + 'px';
@@ -611,7 +627,6 @@
                 document.getElementById('red-strobe-fx').style.display = 'block';
                 document.getElementById('crisis-overlay').style.display = 'flex';
                 
-                // Punishment Check
                 if (document.getElementById('patient-view').style.display === 'flex') {
                     setTimeout(() => {
                         if (this.state.inCrisis) {
@@ -628,10 +643,9 @@
                 document.getElementById('crisis-overlay').style.display = 'none';
                 if (document.getElementById('patient-view').style.display === 'flex') this.returnToScene();
                 
-                // Penalty Logic for MCI-03
+                const p3 = this.data.find(x => x.id === 'MCI-03');
                 if (!this.state.completedIds.includes('MCI-03') && !this.state.actions['MCI-03']?.includes('tq')) {
-                    const c = this.data.find(x => x.id === 'MCI-03');
-                    c.type = 'Black'; c.feedback = "因空襲延誤止血，傷患已死亡。";
+                    p3.type = 'Black'; p3.feedback = "因空襲延誤止血，傷患已死亡。";
                 }
             },
 
@@ -703,7 +717,7 @@
                     o.start(); o.stop(this.ctx.currentTime+0.2);
                     setTimeout(()=>this.playTone('alarm'), 300);
                 } else if (type==='correct') {
-                    o.frequency.value=600; o.start(); o.stop(this.ctx.currentTime+0.1);
+                    o.frequency.value=600; g.gain.value=0.1; o.start(); o.stop(this.ctx.currentTime+0.1);
                 } else {
                     o.type='square'; o.frequency.value=150; g.gain.value=0.2; o.start(); o.stop(this.ctx.currentTime+0.3);
                 }
