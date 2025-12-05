@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>EMT-1 戰術兵推 V28 | 行動適配版</title>
+    <title>EMT-1 戰術兵推 V41 | 壓力測試版</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
         /* --- 1. Design System --- */
@@ -12,57 +12,123 @@
             --bg-color: #E6E2D8; 
             --paper-color: #FDFBF7;
             --text-main: #2F2F2F; 
-            --text-sub: #666;  
             --primary: #2C3E50;
-            --accent: #C0392B;    /* Critical Red */
-            --success: #27AE60;   /* Green */
-            --warning: #F39C12;
-            --black: #2C3E50;
-            
-            --radius: 6px;
-            --border: 1px solid #C0B7A8;
-            --shadow: 0 4px 12px rgba(0,0,0,0.15);
+            --accent: #C0392B;    
+            --header-height: 50px;
+            --nav-height: 60px;
+            --triage-height: 80px;
         }
 
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }
         
         body {
             margin: 0; padding: 0;
             font-family: 'Noto Sans TC', sans-serif;
             background-color: var(--bg-color);
             color: var(--text-main);
-            /* Dynamic Viewport Height for Mobile Browsers */
             height: 100dvh; 
             width: 100vw;
             display: flex; flex-direction: column;
             overflow: hidden; 
+            position: fixed;
         }
+
+        /* --- Animations --- */
+        @keyframes shake {
+            0% { transform: translate(1px, 1px) rotate(0deg); }
+            10% { transform: translate(-1px, -2px) rotate(-1deg); }
+            20% { transform: translate(-3px, 0px) rotate(1deg); }
+            30% { transform: translate(3px, 2px) rotate(0deg); }
+            40% { transform: translate(1px, -1px) rotate(1deg); }
+            50% { transform: translate(-1px, 2px) rotate(-1deg); }
+            60% { transform: translate(-3px, 1px) rotate(0deg); }
+            70% { transform: translate(3px, 1px) rotate(-1deg); }
+            80% { transform: translate(-1px, -1px) rotate(1deg); }
+            90% { transform: translate(1px, 2px) rotate(0deg); }
+            100% { transform: translate(1px, -2px) rotate(-1deg); }
+        }
+        
+        .screen-shake {
+            animation: shake 0.5s;
+            animation-iteration-count: 3; 
+        }
+
+        .red-flash {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(192, 57, 43, 0.4);
+            pointer-events: none;
+            z-index: 7000;
+            animation: flashFade 0.5s infinite alternate;
+            display: none;
+        }
+        @keyframes flashFade { from { opacity: 0; } to { opacity: 1; } }
 
         /* --- Header --- */
         header {
-            padding: 10px 16px; background: #F4F3EF; border-bottom: 2px solid #aaa;
-            display: flex; justify-content: space-between; align-items: center; z-index: 20;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-            height: 50px; flex-shrink: 0;
-            padding-top: env(safe-area-inset-top); /* Notch support */
+            height: var(--header-height);
+            padding: 0 16px; background: #F4F3EF; border-bottom: 1px solid #aaa;
+            display: flex; justify-content: center; align-items: center; z-index: 20;
+            padding-top: env(safe-area-inset-top);
         }
-        h1 { font-size: 1rem; font-weight: 700; margin: 0; color: var(--primary); letter-spacing: 1px; }
+        h1 { font-size: 1rem; font-weight: 700; color: var(--primary); letter-spacing: 1px; }
         
-        .mute-btn { border: 1px solid #999; color: #555; padding: 4px 10px; border-radius: 4px; font-size: 0.8rem; background:none; cursor: pointer; }
-        .mute-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+        .top-right-controls { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); padding-top: env(safe-area-inset-top); }
+        .mute-btn { border: 1px solid #999; color: #555; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; background:none; cursor: pointer; }
 
-        /* --- Main Layout --- */
+        /* --- Main Content --- */
         main {
-            flex: 1; overflow: hidden; position: relative;
-            display: flex; flex-direction: column;
-            /* Ensure bottom content isn't hidden by home bar */
-            padding-bottom: env(safe-area-inset-bottom);
+            flex: 1; overflow: hidden; position: relative; display: flex; flex-direction: column;
+            padding-bottom: calc(var(--nav-height) + env(safe-area-inset-bottom));
         }
 
-        /* --- 0. START SCREEN --- */
+        /* --- FIXED TRIAGE BAR --- */
+        #triage-bar {
+            position: fixed; 
+            bottom: calc(var(--nav-height) + env(safe-area-inset-bottom)); 
+            left: 0; width: 100%; height: var(--triage-height);
+            background: #fff; border-top: 1px solid #ccc;
+            padding: 10px; z-index: 2000; 
+            display: none; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px;
+        }
+        .btn-triage {
+            padding: 0; color: white; border: none; border-radius: 6px;
+            font-weight: bold; cursor: pointer; font-size: 0.9rem;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .btn-triage.red { background: #C0392B; }
+        .btn-triage.yellow { background: #F1C40F; color: #333; }
+        .btn-triage.green { background: #27AE60; }
+        .btn-triage.black { background: #2C3E50; }
+
+        /* --- Dashboard (FIXED: High Z-Index for Report Mode) --- */
+        #dashboard {
+            position: fixed; top: 80px; left: 20px; 
+            width: 44px; height: 44px;
+            background: rgba(255,255,255,0.98); border: 1px solid #777;
+            border-radius: 50%; box-shadow: 0 4px 15px rgba(0,0,0,0.4); 
+            z-index: 6000; /* Priority over everything including modals */
+            overflow: hidden; 
+            transition: width 0.2s, height 0.2s, border-radius 0.2s;
+            touch-action: none; 
+        }
+        #dashboard.expanded { width: 170px; height: auto; border-radius: 8px; }
+        
+        .dash-icon { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; color: var(--primary); }
+        .dash-content { padding: 10px; display: none; }
+        #dashboard.expanded .dash-icon { display: none; }
+        #dashboard.expanded .dash-content { display: block; }
+        
+        .dash-header { 
+            background: var(--primary); color: white; padding: 8px; 
+            font-size: 0.85rem; font-weight: bold; display: flex; justify-content: space-between; align-items: center; 
+            margin: -10px -10px 10px -10px; cursor: move; 
+        }
+        .dash-row { display: flex; justify-content: space-between; margin-bottom: 6px; border-bottom: 1px dotted #ccc; padding-bottom: 2px; font-size: 0.9rem;}
+
+        /* --- Start Screen --- */
         #start-screen {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(230, 226, 216, 0.98); z-index: 600;
+            background: #E6E2D8; z-index: 4000;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             text-align: center; padding: 20px;
         }
@@ -73,238 +139,132 @@
         .btn-start {
             margin-top: 20px; padding: 15px 40px; background: var(--primary); color: #fff;
             border: none; font-size: 1.2rem; cursor: pointer; border-radius: 30px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2); font-weight: bold;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2); font-weight: bold; width: 100%;
         }
 
-        /* --- 1. SCENE MAP VIEW --- */
-        #scene-view {
-            width: 100%; height: 100%; position: absolute; top: 0; left: 0;
-            background: #EAECEE; overflow: hidden;
-            display: none; /* Toggled */
-        }
+        /* --- Scene View --- */
+        #scene-view { width: 100%; height: 100%; position: relative; background: #EAECEE; display: none; }
         .map-grid {
             width: 100%; height: 100%; position: relative;
-            background-color: #D6DBDF;
-            background-image: 
-                linear-gradient(rgba(255,255,255,0.3) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255,255,255,0.3) 1px, transparent 1px);
+            background-image: linear-gradient(rgba(255,255,255,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.3) 1px, transparent 1px);
             background-size: 40px 40px;
-            overflow: hidden; 
         }
-        .map-obj { position: absolute; font-size: 0.8rem; color: #555; pointer-events: none; text-align: center; font-weight: bold; border: 2px dashed #999; display:flex; align-items:center; justify-content:center; opacity:0.5; background: rgba(255,255,255,0.2); }
-        .map-obj.zone-a { top: 5%; left: 5%; width: 40%; height: 35%; }
-        .map-obj.zone-b { top: 50%; left: 50%; width: 45%; height: 45%; }
-        .map-obj.zone-c { top: 70%; left: 5%; width: 35%; height: 25%; }
+        .map-obj { position: absolute; font-size: 0.9rem; color: #555; pointer-events: none; text-align: center; font-weight: bold; border: 2px dashed #999; display:flex; align-items:center; justify-content:center; opacity:0.6; background: rgba(255,255,255,0.3); }
+        .map-obj.zone-a { top: 5%; left: 5%; width: 40%; height: 40%; }
+        .map-obj.zone-b { top: 5%; left: 50%; width: 45%; height: 40%; }
+        .map-obj.zone-c { top: 50%; left: 5%; width: 90%; height: 35%; }
         
         .patient-dot {
-            width: 40px; height: 40px; background: #7F8C8D; border: 2px solid #fff;
+            width: 48px; height: 48px; background: #7F8C8D; border: 3px solid #fff;
             border-radius: 50%; position: absolute; cursor: pointer;
-            box-shadow: 0 3px 6px rgba(0,0,0,0.3);
+            box-shadow: 0 3px 8px rgba(0,0,0,0.4);
             display: flex; align-items: center; justify-content: center;
-            font-weight: bold; color: #fff; font-size: 0.8rem;
-            transition: transform 0.2s; z-index: 10;
-            /* Ensure touch targets are big enough */
-            touch-action: manipulation;
+            font-weight: bold; color: #fff; font-size: 0.85rem; z-index: 10;
         }
-        .patient-dot:active { transform: scale(1.4); }
-        /* Tag Colors */
-        .patient-dot.done-Red { background: #C0392B; opacity: 0.9; }
-        .patient-dot.done-Yellow { background: #F1C40F; opacity: 0.9; color: #333; }
-        .patient-dot.done-Green { background: #27AE60; opacity: 0.9; }
-        .patient-dot.done-Black { background: #2C3E50; opacity: 0.9; }
-        
+        .patient-dot.done-Red { background: #C0392B; }
+        .patient-dot.done-Yellow { background: #F1C40F; color: #333; }
+        .patient-dot.done-Green { background: #27AE60; }
+        .patient-dot.done-Black { background: #2C3E50; }
         .patient-dot.green-walk { animation: walkAway 1s forwards; }
         @keyframes walkAway { to { opacity: 0; transform: translate(100px, -100px); } }
 
-        .broadcast-btn {
-            position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%);
-            background: var(--success); color: white; border: none; padding: 12px 24px;
-            font-size: 1rem; border-radius: 30px; cursor: pointer;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2); font-weight: bold; display: flex; gap: 8px; align-items: center;
-            z-index: 30; white-space: nowrap;
-            /* Avoid bottom bar intersection */
-            margin-bottom: env(safe-area-inset-bottom);
+        .broadcast-fab {
+            position: absolute; bottom: 30px; right: 20px; 
+            background: var(--accent); color: white; border: none; 
+            width: 64px; height: 64px; border-radius: 50%;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3); font-size: 1.8rem;
+            display: flex; align-items: center; justify-content: center; z-index: 30; cursor: pointer;
         }
-        .broadcast-btn:disabled { background: #999; cursor: default; opacity: 0.7; }
-
-        /* Floating Dashboard */
-        #dashboard {
-            position: fixed; top: 60px; left: 10px; width: 160px;
-            background: rgba(255,255,255,0.98); border: 1px solid #555;
-            border-radius: 8px; box-shadow: 0 5px 20px rgba(0,0,0,0.4); 
-            z-index: 1000; /* Highest z-index to float over report modal */
-            transition: height 0.3s, opacity 0.3s; 
-            display: none; /* Hidden initially */
-            overflow: hidden;
-        }
-        .dash-header {
-            background: var(--primary); color: white; padding: 10px; cursor: move;
-            font-size: 0.85rem; font-weight: bold; display: flex; justify-content: space-between; align-items: center;
-            touch-action: none; /* Essential for drag */
-        }
-        .dash-btn { background: none; border: none; color: white; font-weight: bold; cursor: pointer; padding: 5px 10px; font-size: 1.2rem; line-height: 0.5; }
-        .dash-content { padding: 10px; font-size: 0.9rem; }
-        .dash-row { display: flex; justify-content: space-between; margin-bottom: 6px; border-bottom: 1px dotted #ccc; padding-bottom: 2px;}
-        .dash-content.collapsed { display: none; }
-
-        /* Mission Timer */
         #mission-timer {
-            position: absolute; top: 10px; right: 10px;
-            background: #333; color: #0f0; font-family: 'Roboto Mono', monospace;
-            font-size: 1.2rem; padding: 6px 12px; border-radius: 4px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.3); border: 2px solid #555;
-            z-index: 40; pointer-events: none;
+            position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.8); color: #0f0; font-family: 'Roboto Mono', monospace;
+            font-size: 1.2rem; padding: 4px 12px; border-radius: 15px; z-index: 40; pointer-events: none; border: 1px solid #555;
         }
-        #mission-timer.urgent { color: #e74c3c; animation: pulse-red 1s infinite; border-color: #e74c3c; }
+        #mission-timer.urgent { color: #e74c3c; animation: pulse-red 0.5s infinite; border-color: #e74c3c; font-weight:bold; font-size:1.4rem; }
 
-        /* --- 2. PATIENT VIEW --- */
+        /* --- Patient View --- */
         #patient-view {
             width: 100%; height: 100%; position: absolute; top: 0; left: 0;
             background: var(--paper-color); display: none; flex-direction: column;
         }
-        
         .pv-header { 
             padding: 8px 12px; background: #fff; border-bottom: 1px solid #ccc; 
             display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;
         }
-        .pv-body { flex: 1; display: flex; overflow: hidden; position: relative; }
-        
-        /* RWD: Flex Direction change on mobile */
-        @media (max-width: 768px) {
-            .pv-body { flex-direction: column; }
-            .body-container { height: 45%; border-right: none; border-bottom: 1px solid #ddd; flex-shrink: 0; }
-            .info-panel { height: 55%; max-width: 100%; padding-bottom: 80px; /* Space for triage buttons */ }
-        }
-
+        .pv-content-scroll { flex: 1; overflow-y: auto; display: flex; flex-direction: column; padding-bottom: 150px; }
         .body-container {
-            flex: 1; position: relative; background: #FDFBF7;
-            display: flex; align-items: center; justify-content: center;
-            border-right: 1px solid #ddd; padding: 10px; overflow: hidden;
+            height: 380px; position: relative; background: #FDFBF7;
+            display: flex; align-items: center; justify-content: center; border-bottom: 1px solid #ddd;
         }
-        svg.body-svg { height: 100%; width: auto; max-width: 100%; filter: drop-shadow(0 5px 5px rgba(0,0,0,0.1)); touch-action: manipulation; }
-        
-        .body-part { fill: #E0E0E0; stroke: #999; stroke-width: 1.5; transition: fill 0.2s; cursor: pointer; }
-        .body-part:active { fill: #D6DBDF; } /* Touch feedback */
+        .body-part { fill: #E0E0E0; stroke: #999; stroke-width: 1.5; cursor: pointer; }
         .body-part.assessed { fill: #A9DFBF; stroke: #196F3D; }
         .body-part.injured { fill: #F5B7B1; stroke: #C0392B; }
-        .body-part.critical-x { animation: pulse-red 0.8s infinite; fill: #E74C3C; }
-
-        .finding-label {
-            position: absolute; background: rgba(255,255,255,0.95); border: 1px solid #333;
-            padding: 4px 8px; border-radius: 4px; font-size: 0.85rem; pointer-events: none;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2); max-width: 180px; text-align: center;
-            animation: popIn 0.3s; font-weight: 500; z-index: 20;
-        }
-
-        .info-panel {
-            flex: 1; padding: 15px; overflow-y: auto; background: #fff;
-            max-width: 400px; border-left: 1px solid #ccc;
-            display: flex; flex-direction: column;
-            /* Ensure content isn't blocked at bottom */
-            padding-bottom: calc(15px + env(safe-area-inset-bottom));
-        }
-
-        .assessment-log {
-            flex: 1; border: 1px solid #ccc; background: #FAFAFA; padding: 10px;
-            margin-bottom: 10px; overflow-y: auto; font-family: 'Courier New', monospace;
-            font-size: 0.9rem; line-height: 1.5; min-height: 100px;
-        }
-        .log-entry { margin-bottom: 6px; border-left: 3px solid transparent; padding-left: 6px; }
-        .log-entry.warn { border-left-color: #C0392B; background: #FDEDEC; color: #922B21; }
-        .log-entry.action { border-left-color: var(--primary); font-weight: bold; }
-        .log-entry.death { border-left-color: #000; background: #333; color: #fff; }
-
-        .action-grid { display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; }
-        .btn-action {
-            padding: 12px; background: #fff; border: 1px solid #999; border-radius: 4px;
-            text-align: left; cursor: pointer; transition: all 0.1s;
-            font-size: 0.95rem; display: flex; justify-content: space-between; align-items: center;
-            /* Mobile touch target */
-            min-height: 48px;
-        }
-        .btn-action:active { background: #f0f4f8; transform: scale(0.98); }
-        .btn-action:disabled { opacity: 0.5; cursor: not-allowed; background: #eee; }
-        .btn-action.priority { border: 2px solid var(--accent); color: var(--accent); background: #FDEDEC; font-weight: bold; }
-
-        .triage-row { 
-            display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px; 
-            margin-top: auto; padding-top: 10px; border-top: 1px dashed #ccc; 
-            /* Ensure it stays at bottom but safe from home bar */
-            padding-bottom: env(safe-area-inset-bottom);
-        }
-        .btn-triage {
-            padding: 12px 0; color: white; border: none; border-radius: 4px;
-            font-weight: bold; cursor: pointer; font-size: 0.9rem;
-        }
-        .btn-triage:active { opacity: 0.8; }
-        .btn-triage.red { background: #C0392B; }
-        .btn-triage.yellow { background: #F1C40F; color: #333; }
-        .btn-triage.green { background: #27AE60; }
-        .btn-triage.black { background: #2C3E50; }
-
-        /* Overlays & Modals */
-        #crisis-overlay {
-            position: fixed; top:0; left:0; width:100%; height:100%;
-            background: rgba(192, 57, 43, 0.95); z-index: 550;
-            display: none; flex-direction: column; align-items: center; justify-content: center;
-            animation: flash 0.5s infinite alternate; text-align: center; padding: 20px;
-        }
-        .crisis-text { color: #fff; font-size: 2rem; font-weight: bold; margin-bottom: 20px; }
+        .body-part.critical-x { animation: pulse-red 0.5s infinite; fill: #E74C3C; }
         
-        #report-modal {
+        .finding-label {
+            position: absolute; background: rgba(255,255,255,0.95); border: 2px solid #C0392B;
+            padding: 8px; border-radius: 4px; font-size: 0.9rem; pointer-events: none;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2); font-weight: bold; z-index: 20; color: #000;
+        }
+
+        .info-panel { padding: 15px; background: #fff; flex: 1; }
+        .assessment-log {
+            border: 1px solid #ccc; background: #FAFAFA; padding: 10px; margin-bottom: 15px; 
+            font-family: 'Courier New', monospace; font-size: 0.95rem; line-height: 1.5; height: 150px; overflow-y: auto;
+        }
+        .log-entry.warn { color: #922B21; background: #FDEDEC; border-left: 3px solid #C0392B; padding-left:5px; }
+        .btn-action {
+            padding: 15px; background: #fff; border: 1px solid #999; border-radius: 8px;
+            width:100%; margin-bottom:8px; text-align: left; cursor: pointer; font-size: 1rem;
+        }
+        .btn-action.priority { border: 2px solid var(--accent); background: #FDEDEC; font-weight: bold; color: var(--accent); }
+
+        /* --- Modals & Crisis --- */
+        #crisis-overlay, #report-modal, #ending-modal {
             position: fixed; top:0; left:0; width:100%; height:100%;
-            background: rgba(0,0,0,0.7); z-index: 600;
+            background: rgba(0,0,0,0.85); z-index: 5000;
             display: none; justify-content: center; align-items: center; padding: 20px;
         }
-        .report-card { 
-            background: white; padding: 20px; border-radius: 8px; width: 100%; max-width: 360px; 
-            position:relative; box-shadow: 0 5px 20px rgba(0,0,0,0.3); 
-            /* Ensure it fits in viewport */
-            max-height: 80vh; overflow-y: auto;
+        #crisis-overlay { background: rgba(50, 0, 0, 0.95); } /* Darker Red */
+        
+        .crisis-box {
+            border: 4px solid #E74C3C; padding: 25px; border-radius: 0; width: 100%; max-width: 500px;
+            background: #000; text-align: center; color: #fff;
+            box-shadow: 0 0 30px #E74C3C;
         }
-        .report-input { width: 60px; padding: 8px; text-align: center; margin-left: 10px; font-size: 1.2rem; border: 1px solid #ccc; border-radius: 4px; }
+        .report-card { background: white; padding: 25px; border-radius: 12px; width: 100%; max-width: 360px; max-height: 85dvh; overflow-y: auto; }
         .report-row { margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; font-weight: bold; font-size: 1.1rem; }
+        .report-input { width: 60px; padding: 10px; text-align: center; font-size: 1.2rem; border: 1px solid #ccc; background: #f9f9f9; }
 
-        #feedback-modal {
-            position: fixed; top:0; left:0; width:100%; height:100%;
-            background: rgba(0,0,0,0.6); z-index: 550;
-            display: none; justify-content: center; align-items: center; padding: 20px;
+        /* Bottom Nav */
+        #bottom-nav {
+            position: fixed; bottom: 0; left: 0; width: 100%; height: calc(var(--nav-height) + env(safe-area-inset-bottom));
+            background: #fff; border-top: 1px solid #ccc; display: flex; justify-content: space-around; align-items: flex-start;
+            padding-top: 8px; z-index: 1000;
         }
-        .feedback-content {
-            background: #fff; padding: 20px; border-radius: 8px; max-width: 320px; width: 100%;
-            text-align: center; box-shadow: 0 5px 15px rgba(0,0,0,0.3); border: 3px solid #C0392B;
-        }
-
-        #ending-modal {
-            position: fixed; top:0; left:0; width:100%; height:100%;
-            background: rgba(255,255,255,0.98); z-index: 700;
-            display: none; flex-direction: column; align-items: center;
-            padding: 20px; overflow-y: auto;
-        }
-        .ending-content { max-width: 600px; width:100%; background: white; border: 1px solid #333; padding: 20px; margin: 20px 0; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; font-size: 0.7rem; color: #888; flex: 1; }
+        .nav-item.active { color: var(--primary); font-weight: bold; }
+        .nav-icon { font-size: 1.2rem; margin-bottom: 2px; }
 
         #bleed-timer {
-            position: absolute; top: 10px; right: 70px;
+            position: absolute; top: 10px; right: 80px;
             background: #C0392B; color: white; padding: 4px 8px;
             font-weight: bold; font-family: monospace; border-radius: 4px;
-            display: none; animation: pulse-red 1s infinite; font-size: 0.9rem;
+            display: none; animation: pulse-red 0.5s infinite; font-size: 1.1rem;
         }
-
-        @keyframes pulse-red { 0% { fill: #E74C3C; opacity: 1; } 50% { fill: #F1948A; opacity: 0.5; } 100% { fill: #E74C3C; opacity: 1; } }
-        @keyframes flash { from { opacity: 0.95; } to { opacity: 0.85; } }
-        @keyframes popIn { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-
+        
+        @keyframes pulse-red { 0% { opacity: 1; transform:scale(1); } 50% { opacity: 0.7; transform:scale(1.05); } 100% { opacity: 1; transform:scale(1); } }
     </style>
 </head>
 <body>
+    <div id="red-flash-fx" class="red-flash"></div>
 
-    <!-- Floating Dashboard (Draggable & High Z-Index) -->
     <div id="dashboard">
-        <div class="dash-header" id="dash-header">
-            <span>📊 戰情看板</span>
-            <button class="dash-btn" onclick="app.toggleDash()">_</button>
-        </div>
-        <div id="dash-content" class="dash-content">
+        <div class="dash-icon">📊</div>
+        <div class="dash-content">
+            <div class="dash-header" id="dash-header">
+                <span>戰情看板</span> <span style="font-size:1.2rem;">_</span>
+            </div>
             <div class="dash-row"><span style="color:#C0392B">🔴 Red</span><span id="count-r" style="font-weight:bold">0</span></div>
             <div class="dash-row"><span style="color:#F39C12">🟡 Yellow</span><span id="count-y" style="font-weight:bold">0</span></div>
             <div class="dash-row"><span style="color:#27AE60">🟢 Green</span><span id="count-g" style="font-weight:bold">0</span></div>
@@ -315,47 +275,37 @@
         </div>
     </div>
 
-    <!-- 0. Start Screen -->
     <div id="start-screen">
         <div class="mission-card">
-            <h1 style="font-size:1.5rem; margin-bottom:15px; color:var(--primary);">MCI 戰術演練兵推</h1>
+            <h1 style="font-size:1.5rem; margin-bottom:15px; color:var(--primary);">EMT-1 戰術兵推 V41</h1>
             <p style="color:#666; margin-bottom:20px; line-height:1.6; text-align:left;">
                 <strong>任務代號：</strong> 1130 空襲事件<br>
                 <strong>傷患總數：</strong> 15 名<br>
-                <strong>任務時限：</strong> 10 分鐘<br>
-                <strong>任務目標：</strong><br>
-                1. 現場指揮 (Scene Command)<br>
-                2. 快速檢傷 (START Triage)<br>
-                3. 初步處置 (Life-saving Interventions)<br>
-                4. 回報指揮中心 (Report)<br>
+                <strong>任務時限：</strong> <span style="color:#C0392B; font-weight:bold;">5 分鐘 (壓力測試)</span><br>
                 <br>
-                <small style="color:var(--accent)">⚠️ 注意：空襲會導致未處置的大出血傷患立即死亡。</small>
+                <small style="color:var(--accent)">⚠️ 警告：包含強烈聲光效果與動態危機。</small>
             </p>
             <button class="btn-start" onclick="app.startMission()">開始任務 Start</button>
         </div>
     </div>
 
-    <!-- Crisis Overlay -->
     <div id="crisis-overlay">
-        <div class="crisis-text">🚨 空襲警報 AIR RAID 🚨</div>
-        <div style="color:white; margin-bottom:30px; font-size:1.2rem;">砲彈來襲！立即尋找掩護！</div>
-        <button class="btn-action" style="width:auto; justify-content:center; font-weight:bold; font-size:1.2rem; padding:15px 30px;" onclick="app.resolveCrisis()">🛡️ 尋找掩護 (Take Cover)</button>
-    </div>
-
-    <!-- Feedback Modal -->
-    <div id="feedback-modal">
-        <div class="feedback-content">
-            <h3 style="color:#C0392B; margin-top:0;">檢傷判斷錯誤</h3>
-            <p id="feedback-text" style="color:#555; margin:15px 0; text-align:left; line-height:1.5;">...</p>
-            <button onclick="document.getElementById('feedback-modal').style.display='none'" style="padding:10px 30px; font-size:1rem; cursor:pointer; background:var(--primary); color:white; border:none; border-radius:6px;">確認</button>
+        <div class="crisis-box">
+            <div style="font-size:3.5rem; margin-bottom:10px;">💣</div>
+            <div style="font-size:2rem; font-weight:bold; color:#E74C3C; margin-bottom:10px; text-transform:uppercase;">INCOMING FIRE</div>
+            <div class="crisis-desc" id="crisis-desc" style="font-size:1.2rem; margin-bottom:20px;">敵軍砲火覆蓋！熱區禁止醫療！</div>
+            <div style="background:#333; padding:10px; color:#F1C40F; font-weight:bold; margin-bottom:20px; font-size:0.9rem;">
+                TECC 戰術準則：<br>
+                "威脅大於治療。沒有掩護就沒有醫療。"
+            </div>
+            <button class="btn-action" style="width:100%; justify-content:center; font-weight:bold; font-size:1.1rem; padding:15px; background:#E74C3C; color:white; border:none;" onclick="app.resolveCrisis()">尋找掩護 (TAKE COVER)</button>
         </div>
     </div>
 
-    <!-- Report Modal -->
     <div id="report-modal">
         <div class="report-card">
             <h2 style="text-align:center; color:var(--primary); margin-bottom:10px;">指揮中心回報</h2>
-            <p style="text-align:center; color:#666; margin-bottom:15px; font-size:0.85rem;">(請參考懸浮戰情看板填寫)</p>
+            <p style="text-align:center; color:#666; margin-bottom:25px; font-size:0.85rem;">(請參考懸浮看板數據)</p>
             <div class="report-row" style="color:#C0392B;">🔴 紅牌 (Red): <input type="number" id="rep-r" class="report-input" min="0" inputmode="numeric"></div>
             <div class="report-row" style="color:#F39C12;">🟡 黃牌 (Yellow): <input type="number" id="rep-y" class="report-input" min="0" inputmode="numeric"></div>
             <div class="report-row" style="color:#27AE60;">🟢 綠牌 (Green): <input type="number" id="rep-g" class="report-input" min="0" inputmode="numeric"></div>
@@ -364,52 +314,45 @@
         </div>
     </div>
 
-    <!-- Ending Modal (AAR) -->
     <div id="ending-modal">
-        <div class="ending-content">
-            <div id="ending-title" class="ending-title"></div>
-            <div id="ending-body" class="ending-body"></div>
-            <div style="font-weight:bold; margin-bottom:10px; color:var(--primary);">詳細檢討報告 (After Action Review):</div>
-            <div id="ending-review" class="case-review"></div>
-            <button class="btn-action" style="margin-top:20px; justify-content:center; background:var(--primary); color:white;" onclick="location.reload()">重新開始訓練 (Restart)</button>
+        <div class="report-card" style="max-width:600px;">
+            <div id="ending-title" style="font-size:1.5rem; font-weight:bold; margin-bottom:15px; text-align:center;"></div>
+            <div id="ending-body" style="color:#555; line-height:1.6; margin-bottom:20px;"></div>
+            <div style="font-weight:bold; margin-bottom:10px; color:var(--primary);">詳細檢討報告 (AAR):</div>
+            <div id="ending-review" style="max-height:300px; overflow-y:auto; border:1px solid #ddd; padding:10px; border-radius:4px; font-size:0.9rem;"></div>
+            <button class="btn-action" style="margin-top:20px; justify-content:center; background:var(--primary); color:white;" onclick="app.reset()">重新開始 (Restart)</button>
         </div>
     </div>
 
-    <!-- Header -->
     <header>
-        <h1>EMT-1 SIM V28</h1>
-        <button id="mute-toggle" class="mute-btn" onclick="audioSys.toggleMute()">🔊 音效</button>
+        <h1>EMT-1 戰術兵推 V41</h1>
+        <div class="top-right-controls">
+            <button id="mute-toggle" class="mute-btn" onclick="audioSys.toggleMute()">🔊</button>
+        </div>
     </header>
 
-    <main>
-        <!-- 1. SCENE MAP VIEW -->
+    <main id="main-container">
         <div id="scene-view">
-            <!-- Global Mission Timer -->
-            <div id="mission-timer">10:00</div>
+            <div id="mission-timer">05:00</div>
 
             <div class="map-grid" id="map-container">
                 <div class="map-obj zone-a">ZONE A (商場)</div>
                 <div class="map-obj zone-b">ZONE B (公車)</div>
                 <div class="map-obj zone-c">ZONE C (地下室)</div>
             </div>
-            
-            <button id="btn-broadcast" class="broadcast-btn" onclick="app.broadcastGreen()">
-                <span>📢</span> 廣播：可行走者集合 (Green)
-            </button>
+            <div class="broadcast-fab" onclick="app.broadcastGreen()" id="btn-broadcast">📢</div>
         </div>
 
-        <!-- 2. PATIENT VIEW (Body Map) -->
         <div id="patient-view">
             <div class="pv-header">
                 <span id="case-title" style="font-weight:bold; font-family:'Roboto Mono';">CASE: ???</span>
                 <div id="bleed-timer">60s</div>
-                <button onclick="app.returnToScene()" style="padding:6px 12px; border:1px solid #999; background:#fff; cursor:pointer; border-radius:4px;">↩ 返回</button>
+                <button onclick="app.returnToScene()" style="padding:6px 12px; border:1px solid #999; background:#fff; cursor:pointer; border-radius:4px; font-weight:bold;">↩ 撤離</button>
             </div>
             
-            <div class="pv-body">
+            <div class="pv-content-scroll">
                 <div class="body-container">
-                    <svg class="body-svg" viewBox="0 0 200 450" xmlns="http://www.w3.org/2000/svg">
-                        <!-- Clickable Zones with Explicit IDs -->
+                    <svg viewBox="0 0 200 450" xmlns="http://www.w3.org/2000/svg" style="height:100%; width:auto;">
                         <circle id="part-head" class="body-part" cx="100" cy="50" r="35" onclick="app.assessPart('head')"/>
                         <path id="part-chest" class="body-part" d="M 65 90 L 135 90 L 130 160 L 70 160 Z" onclick="app.assessPart('chest')"/>
                         <path id="part-abdomen" class="body-part" d="M 70 160 L 130 160 L 125 210 L 75 210 Z" onclick="app.assessPart('abdomen')"/>
@@ -423,164 +366,150 @@
 
                 <div class="info-panel">
                     <div id="log-display" class="assessment-log">
-                        <div class="log-entry sys">系統就緒。請點選左側身體部位進行評估。</div>
+                        <div class="log-entry">系統就緒。請點選身體部位評估。</div>
                     </div>
-                    <div id="action-panel" class="action-grid"></div>
-                    <div class="triage-row">
-                        <button class="btn-triage red" onclick="app.tagPatient('Red')">紅 Red</button>
-                        <button class="btn-triage yellow" onclick="app.tagPatient('Yellow')">黃 Yellow</button>
-                        <button class="btn-triage green" onclick="app.tagPatient('Green')">綠 Green</button>
-                        <button class="btn-triage black" onclick="app.tagPatient('Black')">黑 Black</button>
-                    </div>
+                    <div id="action-panel" style="display:flex; flex-direction:column; gap:8px;"></div>
                 </div>
+            </div>
+
+            <div id="triage-bar">
+                <button class="btn-triage red" onclick="app.tagPatient('Red')">紅 Red</button>
+                <button class="btn-triage yellow" onclick="app.tagPatient('Yellow')">黃 Yellow</button>
+                <button class="btn-triage green" onclick="app.tagPatient('Green')">綠 Green</button>
+                <button class="btn-triage black" onclick="app.tagPatient('Black')">黑 Black</button>
             </div>
         </div>
     </main>
 
+    <div id="bottom-nav">
+        <div class="nav-item active" onclick="app.switchTab('map')"><div class="nav-icon">🗺️</div><div>現場地圖</div></div>
+        <div class="nav-item" onclick="app.switchTab('patient')"><div class="nav-icon">🚑</div><div>傷患處置</div></div>
+        <div class="nav-item" onclick="audioSys.toggleMute()"><div class="nav-icon">🔊</div><div>靜音切換</div></div>
+    </div>
+
     <script>
-        const CASES = [
-            { id: "MCI-01", type: "Black", title: "C區-被水泥壓住", findings: { head: {text:"頭顱變形，腦組織外溢，無呼吸", icon:"💀"}, chest: {text:"無起伏", icon:""}, abdomen: {text:"無法評估", icon:""}, arm_l: {text:"無反應", icon:""}, arm_r: {text:"無反應", icon:""}, leg_l: {text:"被壓住", icon:""}, leg_r: {text:"被壓住", icon:""} }, is_x: false, feedback: "錯誤。傷患有明顯死亡徵象(腦組織外溢)且無呼吸，應為黑牌。" },
-            { id: "MCI-02", type: "Red", title: "B區-呼吸急促抓喉嚨", findings: { head: {text:"眉毛燒焦，口中有碳粒，發出喘鳴聲", icon:"🔥"}, chest: {text:"呼吸32次/分，頸靜脈怒張", icon:"⚠️"}, abdomen: {text:"無外傷", icon:""}, arm_l: {text:"二度燒傷", icon:""}, arm_r: {text:"二度燒傷", icon:""}, leg_l: {text:"無外傷", icon:""}, leg_r: {text:"無外傷", icon:""} }, is_x: false, feedback: "錯誤。呼吸速率 > 30 且有呼吸道燒灼傷，屬優先救治的紅牌。" },
-            { id: "MCI-03", type: "Red", title: "B區-尖叫大出血", findings: { head: {text:"意識清楚，尖叫呼救", icon:"😨"}, chest: {text:"呼吸26次/分，膚色蒼白", icon:""}, abdomen: {text:"無外傷", icon:""}, arm_l: {text:"無外傷", icon:""}, arm_r: {text:"無外傷", icon:""}, leg_l: {text:"無外傷", icon:""}, leg_r: {text:"🩸 右大腿截肢，噴射狀出血！", icon:"🩸", is_x: true} }, is_x: true, death_timer: 60, feedback: "錯誤。傷患有危及生命的大出血(X)，需立即處置並優先後送，屬紅牌。" },
-            { id: "MCI-04", type: "Red", title: "C區-半掩埋", findings: { head: {text:"意識不清(GCS 9)，呼吸道有分泌物", icon:"🥴"}, chest: {text:"呼吸淺快 8次/分", icon:""}, abdomen: {text:"壓痛", icon:""}, arm_l: {text:"擦傷", icon:""}, arm_r: {text:"擦傷", icon:""}, leg_l: {text:"被瓦礫壓住", icon:""}, leg_r: {text:"被瓦礫壓住", icon:""} }, is_x: false, feedback: "錯誤。意識不清 (GCS<10) 且呼吸速率異常 (<10)，屬紅牌。" },
-            { id: "MCI-05", type: "Yellow", title: "A區-坐著抱手臂", findings: { head: {text:"意識清楚，主訴手痛", icon:"🙂"}, chest: {text:"呼吸20次/分", icon:""}, abdomen: {text:"軟", icon:""}, arm_l: {text:"左上臂變形，無大出血", icon:"🦴"}, arm_r: {text:"無外傷", icon:""}, leg_l: {text:"玻璃割傷", icon:""}, leg_r: {text:"無外傷", icon:""} }, is_x: false, feedback: "錯誤。生命徵象穩定，無法行走但無立即生命危險，屬黃牌。" },
-            { id: "MCI-06", type: "Yellow", title: "A區-胸痛", findings: { head: {text:"意識清楚", icon:""}, chest: {text:"前胸挫傷，呼吸22次/分，痛", icon:"🩹"}, abdomen: {text:"軟", icon:""}, arm_l: {text:"無外傷", icon:""}, arm_r: {text:"無外傷", icon:""}, leg_l: {text:"無外傷", icon:""}, leg_r: {text:"無外傷", icon:""} }, is_x: false, feedback: "錯誤。生命徵象穩定，雖有胸痛但無氣胸徵象，屬黃牌。" },
-            { id: "MCI-07", type: "Yellow", title: "B區-跌坐喊痛", findings: { head: {text:"意識清楚，表情痛苦", icon:""}, chest: {text:"呼吸20次/分", icon:""}, abdomen: {text:"骨盆擠壓痛，無法站立", icon:"⚡"}, arm_l: {text:"無外傷", icon:""}, arm_r: {text:"無外傷", icon:""}, leg_l: {text:"無外傷", icon:""}, leg_r: {text:"無外傷", icon:""} }, is_x: false, feedback: "錯誤。骨盆骨折但無休克徵象，屬黃牌。" },
-            { id: "MCI-08", type: "Yellow", title: "A區-摀肚子", findings: { head: {text:"意識清楚，冒冷汗", icon:""}, chest: {text:"呼吸24次/分", icon:""}, abdomen: {text:"腸道外露 (Evisceration)", icon:"🌭"}, arm_l: {text:"無外傷", icon:""}, arm_r: {text:"無外傷", icon:""}, leg_l: {text:"無外傷", icon:""}, leg_r: {text:"無外傷", icon:""} }, is_x: false, feedback: "錯誤。臟器外露需處置，但目前呼吸循環尚可 (延後後送)。" },
-            { id: "MCI-09", type: "Red", title: "B區-呼吸困難", findings: { head: {text:"意識清楚但焦躁", icon:"😰"}, chest: {text:"右胸疼痛，呼吸36次/分 (氣胸惡化)", icon:"📉"}, abdomen: {text:"軟", icon:""}, arm_l: {text:"無外傷", icon:""}, arm_r: {text:"無外傷", icon:""}, leg_l: {text:"無外傷", icon:""}, leg_r: {text:"無外傷", icon:""} }, is_x: false, crisis_mode: true, feedback: "錯誤。呼吸速率 > 30 (張力性氣胸惡化)，應立即升級為紅牌。" },
-            { id: "MCI-10", type: "Green", title: "A區-走動", findings: { head: {text:"意識清楚", icon:""}, chest: {text:"呼吸正常", icon:""}, abdomen: {text:"軟", icon:""}, arm_l: {text:"擦傷", icon:""}, arm_r: {text:"無", icon:""}, leg_l: {text:"無", icon:""}, leg_r: {text:"無", icon:""} }, is_x: false, feedback: "錯誤。可行走且無主訴嚴重不適，屬綠牌。" },
-            { id: "MCI-11", type: "Green", title: "A區-走動", findings: { head: {text:"意識清楚", icon:""}, chest: {text:"呼吸正常", icon:""}, abdomen: {text:"軟", icon:""}, arm_l: {text:"無", icon:""}, arm_r: {text:"扭傷", icon:""}, leg_l: {text:"無", icon:""}, leg_r: {text:"無", icon:""} }, is_x: false, feedback: "錯誤。可行走，屬綠牌。" },
-            { id: "MCI-12", type: "Green", title: "A區-驚嚇", findings: { head: {text:"驚嚇過度，但在哭", icon:"😭"}, chest: {text:"呼吸快但正常", icon:""}, abdomen: {text:"軟", icon:""}, arm_l: {text:"無", icon:""}, arm_r: {text:"無", icon:""}, leg_l: {text:"無", icon:""}, leg_r: {text:"無", icon:""} }, is_x: false, feedback: "錯誤。心理驚嚇但無外傷，屬綠牌。" },
-            { id: "MCI-13", type: "Green", title: "A區-走動", findings: { head: {text:"意識清楚", icon:""}, chest: {text:"呼吸正常", icon:""}, abdomen: {text:"軟", icon:""}, arm_l: {text:"無", icon:""}, arm_r: {text:"無", icon:""}, leg_l: {text:"擦傷", icon:""}, leg_r: {text:"無", icon:""} }, is_x: false, feedback: "錯誤。輕微擦傷可行走，屬綠牌。" },
-            { id: "MCI-14", type: "Green", title: "A區-倒地抽搐", findings: { head: {text:"E1V1M1 (抽搐中)", icon:"⚡"}, chest: {text:"呼吸淺快", icon:""}, abdomen: {text:"軟", icon:""}, arm_l: {text:"抽搐", icon:""}, arm_r: {text:"抽搐", icon:""}, leg_l: {text:"抽搐", icon:""}, leg_r: {text:"抽搐", icon:""} }, is_x: false, crisis_mode: true, feedback: "錯誤。癲癇發作意識喪失，無法行走，應升級為紅牌。" },
-            { id: "MCI-15", type: "Green", title: "A區-走動", findings: { head: {text:"意識清楚", icon:""}, chest: {text:"呼吸正常", icon:""}, abdomen: {text:"軟", icon:""}, arm_l: {text:"無", icon:""}, arm_r: {text:"無", icon:""}, leg_l: {text:"無", icon:""}, leg_r: {text:"扭傷", icon:""} }, is_x: false, feedback: "錯誤。可行走，屬綠牌。" }
+        // --- CASE DATA ---
+        const CASES_INIT = [
+            { id: "MCI-01", type: "Black", title: "C區-被水泥壓住", findings: { head: {text:"頭顱變形，腦組織外溢", icon:"💀"}, chest: {text:"無起伏", icon:""}, abdomen: {text:"無法評估", icon:""}, arm_l: {text:"無反應", icon:""}, arm_r: {text:"無反應", icon:""}, leg_l: {text:"被壓住", icon:""}, leg_r: {text:"被壓住", icon:""} }, is_x: false, feedback: "腦組織外溢為明顯死亡徵象 (DOA)。", actions_needed: [] },
+            { id: "MCI-02", type: "Red", title: "B區-呼吸急促", findings: { head: {text:"口鼻碳粒，喘鳴聲", icon:"🔥"}, chest: {text:"呼吸32次/分，費力", icon:"⚠️"}, abdomen: {text:"無外傷", icon:""}, arm_l: {text:"二度燒傷", icon:""}, arm_r: {text:"二度燒傷", icon:""}, leg_l: {text:"無外傷", icon:""}, leg_r: {text:"無外傷", icon:""} }, is_x: false, feedback: "呼吸速率 > 30 且呼吸道灼傷，優先紅牌。", actions_needed: ["opa"] },
+            { id: "MCI-03", type: "Red", title: "B區-大出血", findings: { head: {text:"尖叫呼救", icon:"😨"}, chest: {text:"呼吸26次/分，蒼白", icon:""}, abdomen: {text:"無外傷", icon:""}, arm_l: {text:"無外傷", icon:""}, arm_r: {text:"無外傷", icon:""}, leg_l: {text:"無外傷", icon:""}, leg_r: {text:"🩸 右腿截肢噴血！", icon:"🩸", is_x: true} }, is_x: true, death_timer: 45, feedback: "動脈大出血，未立即止血導致死亡。", actions_needed: ["tq"] },
+            { id: "MCI-04", type: "Red", title: "C區-半掩埋", findings: { head: {text:"意識不清(GCS 9)", icon:"🥴"}, chest: {text:"呼吸淺快 8次/分", icon:""}, abdomen: {text:"壓痛", icon:""}, arm_l: {text:"擦傷", icon:""}, arm_r: {text:"擦傷", icon:""}, leg_l: {text:"被壓住", icon:""}, leg_r: {text:"被壓住", icon:""} }, is_x: false, feedback: "意識不清 (GCS<10) 為紅牌。", actions_needed: ["opa"] },
+            { id: "MCI-05", type: "Yellow", title: "A區-坐著手痛", findings: { head: {text:"意識清楚", icon:"🙂"}, chest: {text:"呼吸20次/分", icon:""}, abdomen: {text:"軟", icon:""}, arm_l: {text:"變形，無大出血", icon:"🦴"}, arm_r: {text:"無", icon:""}, leg_l: {text:"割傷", icon:""}, leg_r: {text:"無", icon:""} }, is_x: false, feedback: "無法行走但徵象穩定，黃牌。", actions_needed: [] },
+            { id: "MCI-06", type: "Yellow", title: "A區-胸痛", findings: { head: {text:"意識清楚", icon:""}, chest: {text:"前胸挫傷，呼吸22次/分", icon:"🩹"}, abdomen: {text:"軟", icon:""}, arm_l: {text:"無", icon:""}, arm_r: {text:"無", icon:""}, leg_l: {text:"無", icon:""}, leg_r: {text:"無", icon:""} }, is_x: false, feedback: "胸部挫傷但呼吸正常，黃牌。", actions_needed: [] },
+            { id: "MCI-07", type: "Yellow", title: "B區-跌坐", findings: { head: {text:"痛苦表情", icon:""}, chest: {text:"呼吸20次/分", icon:""}, abdomen: {text:"骨盆擠壓痛", icon:"⚡"}, arm_l: {text:"無", icon:""}, arm_r: {text:"無", icon:""}, leg_l: {text:"無", icon:""}, leg_r: {text:"無", icon:""} }, is_x: false, feedback: "骨盆骨折，黃牌。", actions_needed: [] },
+            { id: "MCI-08", type: "Yellow", title: "A區-摀肚子", findings: { head: {text:"冒冷汗", icon:""}, chest: {text:"呼吸24次/分", icon:""}, abdomen: {text:"腸道外露", icon:"🌭"}, arm_l: {text:"無", icon:""}, arm_r: {text:"無", icon:""}, leg_l: {text:"無", icon:""}, leg_r: {text:"無", icon:""} }, is_x: false, feedback: "臟器外露，需覆蓋，黃牌。", actions_needed: ["gut"] },
+            { id: "MCI-09", type: "Red", title: "B區-呼吸困難", findings: { head: {text:"焦躁不安", icon:"😰"}, chest: {text:"單側呼吸音消失，呼吸36次", icon:"📉"}, abdomen: {text:"軟", icon:""}, arm_l: {text:"無", icon:""}, arm_r: {text:"無", icon:""}, leg_l: {text:"無", icon:""}, leg_r: {text:"無", icon:""} }, is_x: false, crisis_mode: true, feedback: "張力性氣胸徵象，紅牌。", actions_needed: [] },
+            { id: "MCI-10", type: "Green", title: "A區-走動", findings: { head: {text:"清楚", icon:""}, chest: {text:"正常", icon:""}, abdomen: {text:"軟", icon:""}, arm_l: {text:"擦傷", icon:""}, arm_r: {text:"無", icon:""}, leg_l: {text:"無", icon:""}, leg_r: {text:"無", icon:""} }, is_x: false, feedback: "綠牌。", actions_needed: [] },
+            { id: "MCI-11", type: "Green", title: "A區-走動", findings: { head: {text:"清楚", icon:""}, chest: {text:"正常", icon:""}, abdomen: {text:"軟", icon:""}, arm_l: {text:"無", icon:""}, arm_r: {text:"扭傷", icon:""}, leg_l: {text:"無", icon:""}, leg_r: {text:"無", icon:""} }, is_x: false, feedback: "綠牌。", actions_needed: [] },
+            { id: "MCI-12", type: "Green", title: "A區-驚嚇", findings: { head: {text:"哭泣", icon:"😭"}, chest: {text:"快但正常", icon:""}, abdomen: {text:"軟", icon:""}, arm_l: {text:"無", icon:""}, arm_r: {text:"無", icon:""}, leg_l: {text:"無", icon:""}, leg_r: {text:"無", icon:""} }, is_x: false, feedback: "綠牌。", actions_needed: [] },
+            { id: "MCI-13", type: "Green", title: "A區-走動", findings: { head: {text:"清楚", icon:""}, chest: {text:"正常", icon:""}, abdomen: {text:"軟", icon:""}, arm_l: {text:"無", icon:""}, arm_r: {text:"無", icon:""}, leg_l: {text:"擦傷", icon:""}, leg_r: {text:"無", icon:""} }, is_x: false, feedback: "綠牌。", actions_needed: [] },
+            { id: "MCI-14", type: "Green", title: "A區-倒地", findings: { head: {text:"抽搐中", icon:"⚡"}, chest: {text:"淺快", icon:""}, abdomen: {text:"軟", icon:""}, arm_l: {text:"抽搐", icon:""}, arm_r: {text:"抽搐", icon:""}, leg_l: {text:"抽搐", icon:""}, leg_r: {text:"抽搐", icon:""} }, is_x: false, crisis_mode: true, feedback: "癲癇發作意識不清，紅牌。", actions_needed: ["opa"] },
+            { id: "MCI-15", type: "Green", title: "A區-走動", findings: { head: {text:"清楚", icon:""}, chest: {text:"正常", icon:""}, abdomen: {text:"軟", icon:""}, arm_l: {text:"無", icon:""}, arm_r: {text:"無", icon:""}, leg_l: {text:"無", icon:""}, leg_r: {text:"扭傷", icon:""} }, is_x: false, feedback: "綠牌。", actions_needed: [] }
         ];
+
+        let CASES = JSON.parse(JSON.stringify(CASES_INIT));
 
         const app = {
             state: {
-                currentCase: null,
-                assessedParts: [],
-                log: [],
-                x_treated: false,
-                inCrisis: false,
-                completedIds: [],
-                userDecisions: {}, // Store user choice here { id: 'Red' }
-                greenBroadcasted: false,
-                timerId: null,
-                deathCountdown: 0,
-                isDead: false,
-                triageCounts: { Red: 0, Yellow: 0, Green: 0, Black: 0 },
-                missionTime: 600, // 10 minutes
-                missionTimerId: null
+                currentCase: null, assessedParts: [], log: [], x_treated: false, inCrisis: false, completedIds: [],
+                userDecisions: {}, userActions: {}, greenBroadcasted: false, timerId: null, deathCountdown: 0, isDead: false,
+                triageCounts: { Red: 0, Yellow: 0, Green: 0, Black: 0 }, missionTime: 300, missionTimerId: null, crisisTimerId: null
+            },
+
+            init: function() { this.initDraggable(); },
+
+            reset: function() {
+                CASES = JSON.parse(JSON.stringify(CASES_INIT));
+                this.state = {
+                    currentCase: null, assessedParts: [], log: [], x_treated: false, inCrisis: false, completedIds: [],
+                    userDecisions: {}, userActions: {}, greenBroadcasted: false, timerId: null, deathCountdown: 0, isDead: false,
+                    triageCounts: { Red: 0, Yellow: 0, Green: 0, Black: 0 }, missionTime: 300, missionTimerId: null, crisisTimerId: null
+                };
+                document.getElementById('ending-modal').style.display = 'none';
+                document.getElementById('start-screen').style.display = 'flex';
+                document.getElementById('dashboard').classList.remove('expanded');
+                ['r','y','g','b'].forEach(k => document.getElementById(`count-${k}`).innerText = "0");
+                document.getElementById('pending-count').innerText = "15";
+                const dash = document.getElementById('dashboard');
+                dash.style.left = '20px'; dash.style.top = '80px';
+                dash.style.zIndex = '6000'; // Ensure high z-index
             },
 
             startMission: function() {
+                audioSys.init(); 
                 document.getElementById('start-screen').style.display = 'none';
-                document.getElementById('dashboard').style.display = 'block'; // Show dashboard ONLY after start
-                this.initDraggable();
                 this.renderSceneMap();
-                audioSys.init();
                 this.startMissionTimer();
-            },
-
-            startMissionTimer: function() {
-                this.state.missionTimerId = setInterval(() => {
-                    this.state.missionTime--;
-                    const m = Math.floor(this.state.missionTime / 60);
-                    const s = this.state.missionTime % 60;
-                    const display = `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
-                    const el = document.getElementById('mission-timer');
-                    if(el) el.innerText = display;
-                    
-                    if(this.state.missionTime <= 60 && el) el.classList.add('urgent');
-                    if(this.state.missionTime <= 0) {
-                        clearInterval(this.state.missionTimerId);
-                        alert("任務時間結束！強制進入回報階段。");
-                        this.showFinalReport();
-                    }
-                }, 1000);
-            },
-
-            toggleDash: function() {
-                const el = document.getElementById('dash-content');
-                if (el.classList.contains('collapsed')) {
-                    el.classList.remove('collapsed');
-                } else {
-                    el.classList.add('collapsed');
-                }
+                this.startCrisisEngine();
             },
 
             initDraggable: function() {
                 const dash = document.getElementById('dashboard');
-                const header = document.getElementById('dash-header');
+                const handleOpen = document.getElementById('dash-header');
+                const handleClosed = dash.querySelector('.dash-icon');
                 let isDragging = false, startX, startY, initialLeft, initialTop;
 
-                const startDrag = (clientX, clientY) => {
-                    isDragging = true;
-                    startX = clientX;
-                    startY = clientY;
-                    initialLeft = dash.offsetLeft;
-                    initialTop = dash.offsetTop;
-                };
+                const toggle = () => { if(!isDragging) dash.classList.toggle('expanded'); };
+                handleClosed.addEventListener('click', toggle);
+                handleOpen.querySelector('span:last-child').addEventListener('click', (e) => { e.stopPropagation(); toggle(); });
 
-                const doDrag = (clientX, clientY) => {
-                    if (!isDragging) return;
-                    dash.style.left = (initialLeft + clientX - startX) + 'px';
-                    dash.style.top = (initialTop + clientY - startY) + 'px';
+                const onDown = (e) => {
+                    const evt = e.touches ? e.touches[0] : e;
+                    startX = evt.clientX; startY = evt.clientY;
+                    initialLeft = dash.offsetLeft; initialTop = dash.offsetTop;
+                    isDragging = false;
+                    document.addEventListener('mousemove', onMove); document.addEventListener('touchmove', onMove, {passive:false});
+                    document.addEventListener('mouseup', onUp); document.addEventListener('touchend', onUp);
                 };
-
-                const endDrag = () => { isDragging = false; };
-
-                // Mouse events
-                header.onmousedown = (e) => { startDrag(e.clientX, e.clientY); };
-                document.onmouseup = endDrag;
-                document.onmousemove = (e) => { doDrag(e.clientX, e.clientY); };
-
-                // Touch events
-                header.ontouchstart = (e) => { 
-                    const touch = e.touches[0];
-                    startDrag(touch.clientX, touch.clientY); 
-                    // Don't prevent default too aggressively or clicks might fail, but for header drag it's usually safe
+                const onMove = (e) => {
+                    const evt = e.touches ? e.touches[0] : e;
+                    if (Math.abs(evt.clientX - startX) > 5 || Math.abs(evt.clientY - startY) > 5) {
+                        isDragging = true; 
+                        if(e.cancelable) e.preventDefault();
+                    }
+                    if (isDragging) {
+                        let l = initialLeft + (evt.clientX - startX);
+                        let t = initialTop + (evt.clientY - startY);
+                        dash.style.left = Math.max(0, Math.min(l, window.innerWidth - dash.offsetWidth)) + 'px';
+                        dash.style.top = Math.max(0, Math.min(t, window.innerHeight - dash.offsetHeight)) + 'px';
+                    }
                 };
-                document.ontouchend = endDrag;
-                document.ontouchmove = (e) => { 
-                    if(isDragging) e.preventDefault(); // Prevent scroll when dragging
-                    const touch = e.touches[0];
-                    doDrag(touch.clientX, touch.clientY); 
+                const onUp = () => {
+                    document.removeEventListener('mousemove', onMove); document.removeEventListener('touchmove', onMove);
+                    document.removeEventListener('mouseup', onUp); document.removeEventListener('touchend', onUp);
+                    setTimeout(() => isDragging = false, 100);
                 };
+                handleClosed.addEventListener('mousedown', onDown); handleClosed.addEventListener('touchstart', onDown, {passive:false});
+                handleOpen.addEventListener('mousedown', onDown); handleOpen.addEventListener('touchstart', onDown, {passive:false});
             },
 
             renderSceneMap: function() {
                 document.getElementById('scene-view').style.display = 'block';
                 document.getElementById('patient-view').style.display = 'none';
+                document.getElementById('triage-bar').style.display = 'none';
                 
-                const total = CASES.length;
-                const done = this.state.completedIds.length;
+                const total = 15; const done = this.state.completedIds.length;
                 document.getElementById('pending-count').innerText = total - done;
 
-                if (done === total) {
-                    this.showFinalReport();
-                    return;
-                }
+                if (done === total) { this.showFinalReport(); return; }
 
                 const map = document.getElementById('map-container');
                 map.querySelectorAll('.patient-dot').forEach(e => e.remove());
                 
+                const slots = [
+                    {t: 10, l: 10}, {t: 10, l: 30}, {t: 25, l: 10}, {t: 25, l: 30}, {t: 40, l: 20}, // A
+                    {t: 10, l: 60}, {t: 10, l: 80}, {t: 30, l: 60}, {t: 30, l: 80}, {t: 20, l: 70}, // B
+                    {t: 60, l: 15}, {t: 60, l: 45}, {t: 60, l: 75}, {t: 75, l: 30}, {t: 75, l: 60}  // C
+                ];
+
                 CASES.forEach((c, idx) => {
                     if (this.state.completedIds.includes(c.id)) return;
-
                     const dot = document.createElement('div');
                     dot.className = 'patient-dot';
                     dot.innerText = `P${idx+1}`;
-                    
-                    let top, left;
-                    if(c.title.includes("A區")) { top=10+Math.random()*20; left=10+Math.random()*20; }
-                    else if(c.title.includes("B區")) { top=40+Math.random()*20; left=40+Math.random()*20; }
-                    else if(c.title.includes("C區")) { top=70+Math.random()*20; left=10+Math.random()*20; }
-                    else { top=Math.random()*80+10; left=Math.random()*80+10; } 
-
-                    dot.style.top = top + '%';
-                    dot.style.left = left + '%';
+                    let pos = slots[idx % slots.length];
+                    dot.style.top = (pos.t + (Math.random()-0.5)*3) + '%';
+                    dot.style.left = (pos.l + (Math.random()-0.5)*3) + '%';
                     
                     if (this.state.greenBroadcasted && c.type === 'Green' && c.id !== 'MCI-14') {
                         dot.classList.add('green-walk');
@@ -588,11 +517,10 @@
                             if(!this.state.completedIds.includes(c.id)) {
                                 this.updateTriageCount('Green');
                                 this.state.completedIds.push(c.id);
-                                this.state.userDecisions[c.id] = 'Green'; // Auto tag
-                                dot.remove(); 
-                                this.renderSceneMap(); 
+                                this.state.userDecisions[c.id] = 'Green'; 
+                                dot.remove(); this.renderSceneMap();
                             }
-                        }, 1000);
+                        }, 800);
                     } else {
                         dot.onclick = () => this.enterCase(c);
                     }
@@ -600,51 +528,32 @@
                 });
             },
 
-            broadcastGreen: function() {
-                if(this.state.greenBroadcasted) return;
-                this.state.greenBroadcasted = true;
-                document.getElementById('btn-broadcast').disabled = true;
-                document.getElementById('btn-broadcast').innerText = "✅ 綠牌傷患已集結";
-                audioSys.playTone('correct');
-                this.renderSceneMap();
-            },
-
             enterCase: function(c) {
                 if (!c) return;
                 this.state.currentCase = c;
                 this.state.assessedParts = [];
-                this.state.log = [`>> 接觸傷患: ${c.title}`, `>> 視診：請點擊身體部位進行評估。`];
-                this.state.x_treated = false;
-                this.state.inCrisis = false;
-                this.state.isDead = false;
+                this.state.log = [`>> 接觸傷患: ${c.title}`];
+                this.state.x_treated = false; this.state.inCrisis = false; this.state.isDead = false;
+                if(!this.state.userActions[c.id]) this.state.userActions[c.id] = [];
                 
                 document.getElementById('scene-view').style.display = 'none';
                 document.getElementById('patient-view').style.display = 'flex';
+                document.getElementById('triage-bar').style.display = 'grid'; 
                 document.getElementById('case-title').innerText = `CASE: ${c.id}`;
                 
-                document.querySelectorAll('.body-part').forEach(el => {
-                    if (el) el.classList.remove('assessed', 'injured', 'critical-x');
-                });
+                document.querySelectorAll('.body-part').forEach(el => el.classList.remove('assessed', 'injured', 'critical-x'));
                 document.getElementById('body-overlays').innerHTML = '';
 
                 if (c.death_timer) {
                     this.state.deathCountdown = c.death_timer;
-                    const timerEl = document.getElementById('bleed-timer');
-                    timerEl.style.display = 'block';
-                    timerEl.innerText = `${this.state.deathCountdown}s`;
-                    
+                    document.getElementById('bleed-timer').style.display = 'block';
+                    document.getElementById('bleed-timer').innerText = `${this.state.deathCountdown}s`;
                     if (this.state.timerId) clearInterval(this.state.timerId);
                     this.state.timerId = setInterval(() => {
-                        if (this.state.x_treated || this.state.isDead) {
-                            clearInterval(this.state.timerId);
-                            timerEl.style.display = 'none';
-                            return;
-                        }
+                        if (this.state.x_treated || this.state.isDead) { clearInterval(this.state.timerId); return; }
                         this.state.deathCountdown--;
-                        timerEl.innerText = `${this.state.deathCountdown}s`;
-                        if (this.state.deathCountdown <= 0) {
-                            this.triggerDeath("失血過多");
-                        }
+                        document.getElementById('bleed-timer').innerText = `${this.state.deathCountdown}s`;
+                        if (this.state.deathCountdown <= 0) this.triggerDeath("失血過多");
                     }, 1000);
                 } else {
                     document.getElementById('bleed-timer').style.display = 'none';
@@ -653,38 +562,27 @@
                 if (c.is_x) {
                     const xKey = Object.keys(c.findings).find(k => c.findings[k].is_x);
                     if(xKey) {
-                        const el = document.getElementById(`part-${xKey}`);
-                        if (el) el.classList.add('critical-x');
-                        this.log(`⚠️ 外觀發現：大量噴射狀出血！`, 'warn');
+                        document.getElementById(`part-${xKey}`).classList.add('critical-x');
+                        this.log(`⚠️ 發現大量出血！`, 'warn');
                     }
                 }
-
-                this.updateLog();
-                this.renderActions();
+                this.updateLog(); this.renderActions();
             },
 
-            triggerDeath: function(reason) {
-                if (this.state.timerId) clearInterval(this.state.timerId);
-                this.state.isDead = true;
-                this.state.currentCase.type = 'Black'; 
-                this.state.currentCase.feedback = "正確。傷患已無生命徵象，MCI 判定為黑牌。";
-                this.log(`💀 傷患因${reason}，心跳停止 (OHCA)。`, 'death');
-                this.log(`⚠️ 進入 OHCA 流程：MCI 資源有限，應判定為黑牌。`, 'sys');
-                audioSys.playTone('wrong');
-                this.renderActions();
+            returnToScene: function() {
+                if(this.state.timerId) clearInterval(this.state.timerId);
+                document.getElementById('triage-bar').style.display = 'none';
+                this.renderSceneMap();
             },
 
             assessPart: function(partId) {
-                if (this.state.inCrisis) return;
-                if (this.state.isDead) return;
-
+                if (this.state.inCrisis || this.state.isDead) return;
                 const c = this.state.currentCase;
                 const data = c.findings[partId];
                 
-                // XABCDE Rule check (Simplified)
                 const hasX = Object.values(c.findings).some(f => f.is_x);
                 if (hasX && !this.state.x_treated && !data.is_x) {
-                    this.log(`❌ 違反 XABCDE！發現大出血，應優先止血！`, 'warn');
+                    this.log(`❌ 違反 TECC！應優先處理大出血！`, 'warn');
                     audioSys.playTone('wrong');
                     return;
                 }
@@ -692,114 +590,66 @@
                 if (!this.state.assessedParts.includes(partId)) {
                     this.state.assessedParts.push(partId);
                     const el = document.getElementById(`part-${partId}`);
-                    if(el) { 
-                        el.classList.add('assessed');
-                        if (data.text.includes('傷') || data.text.includes('血') || data.text.includes('痛') || data.is_x || data.text.includes('變形') || data.text.includes('燒傷') || data.text.includes('無反應')) {
-                            el.classList.add('injured');
-                        }
-                        this.showFloatingLabel(el, data.text);
-                    }
-                    this.log(`🔍 評估 ${partId}: ${data.text}`);
+                    el.classList.add('assessed');
+                    if (data.text.match(/傷|血|痛|變形|燒|無反應/)) el.classList.add('injured');
+                    this.showFloatingLabel(el, data.text);
+                    this.log(`🔍 ${data.text}`);
                 }
-
-                this.renderActions(); 
-                this.triggerRandomCrisis();
+                this.renderActions();
             },
 
             showFloatingLabel: function(el, text) {
-                if (!el) return;
-                const container = document.getElementById('body-overlays');
                 const label = document.createElement('div');
                 label.className = 'finding-label';
-                label.innerText = text.length > 12 ? text.substring(0,12)+"..." : text;
+                label.innerText = text;
                 const id = el.id;
-                // Rough positioning logic
-                if(id.includes('head')) { label.style.top = '10%'; label.style.left = '50%'; }
-                else if(id.includes('chest')) { label.style.top = '25%'; label.style.left = '50%'; }
-                else if(id.includes('abdomen')) { label.style.top = '40%'; label.style.left = '50%'; }
-                else if(id.includes('leg')) { label.style.top = '70%'; label.style.left = '50%'; }
-                else { label.style.top = '50%'; label.style.left = '50%'; }
+                // Simple positioning map
+                const posMap = { 'head':['10%','50%'], 'chest':['25%','50%'], 'abdomen':['40%','50%'], 'leg':['70%','50%'], 'arm':['30%','20%'] };
+                let k = Object.keys(posMap).find(key => id.includes(key)) || 'chest';
+                label.style.top = posMap[k][0]; label.style.left = posMap[k][1];
                 label.style.transform = 'translateX(-50%)';
-                container.appendChild(label);
-                setTimeout(() => label.remove(), 3000);
+                document.getElementById('body-overlays').appendChild(label);
+                setTimeout(() => label.remove(), 2500);
+            },
+
+            performAction: function(act) {
+                const c = this.state.currentCase;
+                if(!this.state.userActions[c.id].includes(act)) this.state.userActions[c.id].push(act);
+                if (act === 'tq') {
+                    this.state.x_treated = true;
+                    if(this.state.timerId) clearInterval(this.state.timerId); 
+                    document.getElementById('bleed-timer').style.display = 'none';
+                    this.log(`✅ 止血帶已使用。`, 'action');
+                    document.querySelectorAll('.critical-x').forEach(el => el.classList.remove('critical-x'));
+                    this.renderActions();
+                } else if (act === 'opa') {
+                    this.log(c.findings.head.text.includes('清楚') ? `❌ 傷患排斥 OPA！` : `✅ OPA 置入成功。`, c.findings.head.text.includes('清楚') ? 'warn' : 'action');
+                } else if (act === 'gut') {
+                    this.log(`✅ 濕敷料已覆蓋。`, 'action');
+                }
             },
 
             renderActions: function() {
                 const panel = document.getElementById('action-panel');
                 panel.innerHTML = '';
                 const c = this.state.currentCase;
+                if (this.state.isDead) return;
 
-                if (this.state.isDead) {
-                    panel.innerHTML = `<div class="log-entry death">傷患已死亡。請標記黑牌。</div>`;
-                    return;
+                if (c.is_x && !this.state.x_treated && this.state.assessedParts.length > 0) {
+                     panel.innerHTML += `<button class="btn-action priority" onclick="app.performAction('tq')">🩸 使用止血帶 (CAT)</button>`;
+                     return;
                 }
-
-                if (c.is_x && !this.state.x_treated) {
-                    const xPart = Object.keys(c.findings).find(k => c.findings[k].is_x);
-                    if (this.state.assessedParts.includes(xPart)) {
-                        panel.innerHTML += `<button class="btn-action priority" onclick="app.performAction('tq')"><span>🩸 使用止血帶 (Tourniquet)</span></button>`;
-                    }
-                    return; 
-                }
-
                 if (this.state.assessedParts.includes('head')) {
-                    panel.innerHTML += `
-                    <div style="display:flex; gap:5px;">
-                        <button class="btn-action" style="flex:1" onclick="app.performAction('opa')">🫁 口咽 (OPA)</button>
-                        <button class="btn-action" style="flex:1" onclick="app.performAction('npa')">👃 鼻咽 (NPA)</button>
-                    </div>
-                    <button class="btn-action" onclick="app.performAction('pain')">⚡ 刺激斜方肌 (Pain)</button>
-                    `;
+                    panel.innerHTML += `<button class="btn-action" onclick="app.performAction('opa')">🫁 置入口咽呼吸道 (OPA)</button>`;
                 }
-
-                if (c.findings.abdomen.text.includes('腸')) {
-                     panel.innerHTML += `<button class="btn-action" onclick="app.performAction('gut')">🩹 濕潤敷料覆蓋</button>`;
-                }
-            },
-
-            performAction: function(act) {
-                const c = this.state.currentCase;
-                
-                if (act === 'tq') {
-                    this.state.x_treated = true;
-                    if(this.state.timerId) clearInterval(this.state.timerId); 
-                    document.getElementById('bleed-timer').style.display = 'none';
-                    this.log(`✅ 止血帶 (CAT) 已使用。出血停止。`, 'action');
-                    document.querySelectorAll('.critical-x').forEach(el => el.classList.remove('critical-x'));
-                    this.renderActions();
-                } else if (act === 'opa') {
-                    if (c.findings.head.text.includes('清楚') || c.findings.head.text.includes('張大眼')) {
-                        this.log(`❌ 傷患排斥 OPA！(有嘔吐反射)`, 'warn');
-                        audioSys.playTone('wrong');
-                    } else {
-                        this.log(`✅ OPA 置入成功。`, 'action');
-                    }
-                } else if (act === 'npa') {
-                    this.log(`✅ NPA 置入成功。`, 'action');
-                } else if (act === 'pain') {
-                    if (c.findings.head.text.includes('無反應')) {
-                        this.log(`⚡ 刺激斜方肌... 仍無反應。`, 'action');
-                    } else if (c.findings.head.text.includes('清楚')) {
-                        this.log(`⚡ 傷患撥開你的手！`, 'warn');
-                    } else {
-                        this.log(`⚡ 刺激斜方肌... 傷患肢體屈曲/伸張。`, 'action');
-                    }
-                } else if (act === 'gut') {
-                    this.log(`✅ 已使用無菌濕敷料覆蓋。`, 'action');
-                }
+                if (c.findings.abdomen.text.includes('腸')) panel.innerHTML += `<button class="btn-action" onclick="app.performAction('gut')">🩹 濕潤敷料覆蓋</button>`;
             },
 
             tagPatient: function(color) {
-                if (this.state.inCrisis) return;
                 const c = this.state.currentCase;
-                
-                // NO FEEDBACK during tagging.
                 this.state.completedIds.push(c.id);
                 this.state.userDecisions[c.id] = color;
-                
                 this.updateTriageCount(color);
-                
-                if(this.state.timerId) clearInterval(this.state.timerId);
                 this.returnToScene();
             },
 
@@ -808,166 +658,164 @@
                 document.getElementById(`count-${color.charAt(0).toLowerCase()}`).innerText = this.state.triageCounts[color];
             },
 
-            triggerRandomCrisis: function() {
-                if (this.state.inCrisis || this.state.currentCase.type === 'Black' || this.state.isDead) return;
-                
-                if (Math.random() < 0.1) {
-                    if (Math.random() > 0.5) {
-                        // Air Raid
-                        this.state.inCrisis = true;
-                        document.getElementById('crisis-overlay').style.display = 'flex';
-                        audioSys.playTone('alarm');
-                        
-                        // Post-Raid Consequence
-                        if (this.state.currentCase.is_x && !this.state.x_treated) {
-                            setTimeout(() => {
-                                if (this.state.inCrisis) return; 
-                                this.log(`⚠️ 空襲延誤處置，傷患因大出血休克死亡！`, 'death');
-                                this.triggerDeath("空襲延誤止血");
-                            }, 5000); 
-                        }
+            switchTab: function(tab) {
+                if(tab === 'map') this.returnToScene();
+                else if(this.state.currentCase && !this.state.completedIds.includes(this.state.currentCase.id)) {
+                    document.getElementById('scene-view').style.display = 'none';
+                    document.getElementById('patient-view').style.display = 'flex';
+                    document.getElementById('triage-bar').style.display = 'grid'; 
+                }
+            },
 
-                    } else if (this.state.currentCase.crisis_mode) {
-                        // Deterioration
-                        if (this.state.currentCase.id === 'MCI-14') {
-                            this.log(`🚨 傷患突然倒地抽搐！(癲癇發作)`, 'warn');
-                            this.state.currentCase.type = 'Red';
-                            this.state.currentCase.feedback = "正確。癲癇發作意識不清，屬紅牌。";
-                        } else {
-                            this.log(`🚨 傷患突然呼吸急促，血氧下降！(氣胸惡化)`, 'warn');
-                            this.state.currentCase.type = 'Red';
-                        }
-                        audioSys.playTone('wrong');
+            broadcastGreen: function() {
+                if(this.state.greenBroadcasted) return;
+                this.state.greenBroadcasted = true;
+                const btn = document.getElementById('btn-broadcast');
+                btn.innerHTML = "✅"; btn.style.background = "#7f8c8d";
+                audioSys.playTone('correct');
+                this.renderSceneMap();
+            },
+
+            startMissionTimer: function() {
+                if(this.state.missionTimerId) clearInterval(this.state.missionTimerId);
+                this.state.missionTimerId = setInterval(() => {
+                    this.state.missionTime--;
+                    const m = Math.floor(this.state.missionTime / 60);
+                    const s = this.state.missionTime % 60;
+                    document.getElementById('mission-timer').innerText = `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+                    if(this.state.missionTime <= 0) {
+                        clearInterval(this.state.missionTimerId);
+                        alert("時間到！停止所有動作！");
+                        this.showFinalReport();
                     }
+                }, 1000);
+            },
+
+            startCrisisEngine: function() {
+                if(this.state.crisisTimerId) clearInterval(this.state.crisisTimerId);
+                this.state.crisisTimerId = setInterval(() => { this.triggerRandomCrisis(); }, 20000); // Check more frequently
+            },
+
+            triggerRandomCrisis: function() {
+                if (this.state.inCrisis || this.state.missionTime < 30) return;
+                
+                // 30% Chance of Air Raid
+                if (Math.random() < 0.3) {
+                    this.state.inCrisis = true;
+                    this.triggerAirRaid();
+                } 
+                // 20% Chance of Patient Deterioration (if treating)
+                else if (Math.random() < 0.5 && this.state.currentCase && this.state.currentCase.crisis_mode) {
+                     this.log(`🚨 傷患病情急遽惡化！`, 'warn');
+                     this.state.currentCase.type = 'Red';
+                     audioSys.playTone('wrong');
+                     document.body.classList.add('screen-shake');
+                     setTimeout(()=>document.body.classList.remove('screen-shake'), 500);
+                }
+            },
+
+            triggerAirRaid: function() {
+                audioSys.playTone('alarm');
+                document.body.classList.add('screen-shake');
+                document.getElementById('red-flash-fx').style.display = 'block';
+                document.getElementById('crisis-overlay').style.display = 'flex';
+                
+                // Punishment logic: If treating patient, kick out or penalize
+                if (document.getElementById('patient-view').style.display !== 'none') {
+                    // Force tactical retreat simulation
+                    this.log("🚨 砲擊！被迫中斷處置尋找掩護！", 'warn');
+                    setTimeout(() => {
+                        this.returnToScene(); // Kicked back to map
+                    }, 500); 
                 }
             },
 
             resolveCrisis: function() {
                 document.getElementById('crisis-overlay').style.display = 'none';
+                document.getElementById('red-flash-fx').style.display = 'none';
+                document.body.classList.remove('screen-shake');
                 this.state.inCrisis = false;
-                this.log(`✅ 危機解除。`, 'sys');
-                
-                if (this.state.currentCase.is_x && !this.state.x_treated) {
-                    this.triggerDeath("空襲期間失血過多");
+                // Penalties
+                const p3 = CASES.find(c => c.id === 'MCI-03');
+                if (!this.state.completedIds.includes('MCI-03') && !this.state.x_treated) {
+                    p3.type = 'Black'; p3.feedback = "因空襲延誤止血，傷患已死亡。";
                 }
+            },
+
+            triggerDeath: function(reason) {
+                if (this.state.timerId) clearInterval(this.state.timerId);
+                this.state.isDead = true;
+                this.state.currentCase.type = 'Black'; 
+                this.state.currentCase.feedback = `傷患因${reason}死亡。`;
+                this.log(`💀 傷患${reason}，OHCA。`, 'death');
+                audioSys.playTone('wrong');
+                this.renderActions();
             },
 
             log: function(msg, type='') {
                 this.state.log.push(msg);
-                this.updateLog();
-            },
-            
-            updateLog: function() {
                 const el = document.getElementById('log-display');
-                el.innerHTML = '';
-                this.state.log.forEach(txt => {
-                    const div = document.createElement('div');
-                    div.className = 'log-entry';
-                    if(txt.includes('❌') || txt.includes('⚠️') || txt.includes('💀')) div.classList.add('warn');
-                    if(txt.includes('✅') || txt.includes('🚑')) div.classList.add('action');
-                    if(txt.includes('>>')) div.classList.add('sys');
-                    div.innerText = txt;
-                    el.appendChild(div);
-                });
+                el.innerHTML = this.state.log.map(t => `<div class="log-entry ${type.includes('warn')?'warn':''}">${t}</div>`).join('');
                 el.scrollTop = el.scrollHeight;
-            },
-
-            returnToScene: function() {
-                this.renderSceneMap();
             },
 
             showFinalReport: function() {
                 document.getElementById('scene-view').style.display = 'none';
                 document.getElementById('patient-view').style.display = 'none';
+                document.getElementById('dashboard').style.display = 'block'; 
+                // Ensure dashboard is expanded for viewing
+                document.getElementById('dashboard').classList.add('expanded');
                 document.getElementById('report-modal').style.display = 'flex';
+                clearInterval(this.state.missionTimerId);
+                clearInterval(this.state.crisisTimerId);
             },
 
             submitReport: function() {
+                // Collect inputs
                 const r = parseInt(document.getElementById('rep-r').value) || 0;
                 const y = parseInt(document.getElementById('rep-y').value) || 0;
                 const g = parseInt(document.getElementById('rep-g').value) || 0;
                 const b = parseInt(document.getElementById('rep-b').value) || 0;
-                
-                const totalInput = r + y + g + b;
-
-                if (totalInput !== 15) {
-                    alert(`目前總人數為 ${totalInput} 人，應為 15 人。請重新確認。`);
-                    return;
-                }
-
+                if ((r+y+g+b) !== 15) { alert("人數不符 (應為15)！"); return; }
                 this.generateEnding();
             },
 
             generateEnding: function() {
                 document.getElementById('report-modal').style.display = 'none';
-                document.getElementById('dashboard').style.display = 'none'; // Hide floating dash in ending
-                
+                document.getElementById('dashboard').style.display = 'none';
                 const modal = document.getElementById('ending-modal');
-                const title = document.getElementById('ending-title');
-                const body = document.getElementById('ending-body');
                 const review = document.getElementById('ending-review');
                 
-                let correctCount = 0;
-                let criticalFail = false;
-                let reviewHtml = "";
-
+                let correctCount = 0; let criticalFail = false; let reviewHtml = "";
                 CASES.forEach(c => {
-                    const userChoice = this.state.userDecisions[c.id] || "Unknown";
-                    const actualType = c.type;
-                    
-                    let statusClass = "error";
-                    let consequence = "";
+                    const user = this.state.userDecisions[c.id];
+                    const actions = this.state.userActions[c.id] || [];
+                    let missing = [];
+                    if(c.actions_needed) c.actions_needed.forEach(req => { if(!actions.includes(req)) missing.push(req); });
 
-                    if (userChoice === actualType) {
+                    if (user === c.type && missing.length === 0) {
                         correctCount++;
-                        statusClass = "ok";
-                        reviewHtml += `<div class="case-item ok">✅ ${c.id}: 判斷正確 (${actualType})</div>`;
+                        reviewHtml += `<div style="color:#27AE60; border-bottom:1px solid #eee; padding:5px;">✅ ${c.id}: 完美處置</div>`;
                     } else {
-                        if (actualType === 'Red' && userChoice === 'Green') {
-                            consequence = "嚴重誤判！紅牌傷患被滯留綠區，因延誤後送而死亡。";
-                            criticalFail = true;
-                        } else if (actualType === 'Red' && userChoice === 'Yellow') {
-                            consequence = "誤判為黃牌，傷患在等待區病情惡化。";
-                        } else if (actualType === 'Black' && userChoice === 'Red') {
-                            consequence = "對明顯死亡者進行無效急救，浪費寶貴資源。";
-                        } else if (actualType === 'Green' && userChoice === 'Red') {
-                            consequence = "輕傷佔用救護車，導致重症傷患無車可送。";
-                        } else {
-                            consequence = `分類錯誤 (應為 ${actualType})，影響檢傷準確度。`;
-                        }
-                        
-                        reviewHtml += `
-                        <div class="case-item error">
-                            ❌ ${c.id}: 您標記 <span style="font-weight:bold">${userChoice}</span> (應為 ${actualType})<br>
-                            <span style="font-size:0.85rem; color:#C0392B;">➤ 後果：${consequence}</span><br>
-                            <span style="font-size:0.85rem; color:#555;">➤ 解析：${c.feedback}</span>
-                        </div>`;
+                        if (c.type === 'Red' && user === 'Green') criticalFail = true;
+                        reviewHtml += `<div style="color:#C0392B; border-bottom:1px solid #eee; padding:5px;">❌ ${c.id}: 您的判斷 ${user || '未檢傷'} (應為 ${c.type})<br><small>${c.feedback} ${missing.length?'未處置:'+missing.join(','):''}</small></div>`;
                     }
                 });
 
                 review.innerHTML = reviewHtml;
                 modal.style.display = 'flex';
+                const title = document.getElementById('ending-title');
+                const body = document.getElementById('ending-body');
 
                 if (correctCount === 15) {
-                    title.innerHTML = "🏆 完美結局：傳奇指揮官";
-                    title.style.color = "#27AE60";
-                    body.innerHTML = `
-                    <p>指揮中心：「收到數據。所有傷患分類精確無誤，後送效率極高。」</p>
-                    <p>在您的冷靜指揮下，所有重症傷患都在黃金時間內獲救。您成功預判了病情惡化，並在空襲中保護了傷患。</p>
-                    <p>這是一次無懈可擊的大量傷病患演練。</p>`;
+                    title.innerText = "🏆 戰術大師"; title.style.color = "#27AE60";
+                    body.innerHTML = "完美達成任務！您在極高壓環境下展現了精準的 TECC 判斷。";
                 } else if (criticalFail) {
-                    title.innerHTML = "💀 慘烈結局：防線崩潰";
-                    title.style.color = "#C0392B";
-                    body.innerHTML = `
-                    <p>指揮中心：「現場回報混亂！多名重症傷患未被及時發現...」</p>
-                    <p>由於關鍵的檢傷錯誤（將紅牌誤判為綠牌），導致傷患在等待區死亡。醫療資源被輕傷者佔用，現場陷入失控。</p>
-                    <p>請務必詳閱下方檢討報告，重新複習 START 檢傷流程。</p>`;
+                    title.innerText = "💀 任務失敗"; title.style.color = "#C0392B";
+                    body.innerHTML = "發生嚴重檢傷錯誤（紅牌誤判為綠牌），導致傷患死亡。";
                 } else {
-                    title.innerHTML = "⚠️ 普通結局：尚有改進空間";
-                    title.style.color = "#E67E22";
-                    body.innerHTML = `
-                    <p>指揮中心：「收到數據。雖然大部份傷患已處理，但現場仍有部分誤判情形。」</p>
-                    <p>您完成了基本任務，但在面對動態病情變化或邊緣個案時判斷不夠精準。請檢討錯誤案例，提升檢傷準確度。</p>`;
+                    title.innerText = `⚠️ 完成演練 (${correctCount}/15)`; title.style.color = "#F39C12";
+                    body.innerHTML = "您在壓力下完成任務，但部分傷患處置或分類有誤。請參考下方檢討。";
                 }
             }
         };
@@ -975,27 +823,35 @@
         const audioSys = {
             ctx: null,
             init: function() {
-                const AudioContext = window.AudioContext || window.webkitAudioContext;
-                if(AudioContext) this.ctx = new AudioContext();
-            },
-            toggleMute: function() {
+                if(!this.ctx) { const AC = window.AudioContext || window.webkitAudioContext; if(AC) this.ctx = new AC(); }
                 if(this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
             },
+            toggleMute: function() { if(this.ctx) this.ctx.state==='suspended'?this.ctx.resume():this.ctx.suspend(); },
             playTone: function(type) {
                 if (!this.ctx) return;
-                const o = this.ctx.createOscillator();
-                const g = this.ctx.createGain();
+                const o = this.ctx.createOscillator(); const g = this.ctx.createGain();
                 o.connect(g); g.connect(this.ctx.destination);
                 const t = this.ctx.currentTime;
                 if (type === 'alarm') {
-                    o.type = 'square'; o.frequency.setValueAtTime(440, t); o.frequency.linearRampToValueAtTime(880, t+0.5); g.gain.setValueAtTime(0.2, t); g.gain.linearRampToValueAtTime(0, t+1.0); o.start(t); o.stop(t+1.0);
+                    o.type = 'sawtooth'; o.frequency.setValueAtTime(600, t); 
+                    o.frequency.linearRampToValueAtTime(900, t+0.1); 
+                    g.gain.setValueAtTime(0.3, t); g.gain.linearRampToValueAtTime(0, t+0.4);
+                    o.start(t); o.stop(t+0.4);
+                    // Create loop effect by scheduling multiple
+                    setTimeout(()=>this.playTone('alarm_echo'), 400);
+                } else if (type === 'alarm_echo') {
+                     o.type = 'square'; o.frequency.setValueAtTime(900, t); 
+                     g.gain.setValueAtTime(0.3, t); g.gain.linearRampToValueAtTime(0, t+0.4);
+                     o.start(t); o.stop(t+0.4);
                 } else if (type === 'correct') {
-                    o.frequency.value = 600; g.gain.value = 0.1; o.start(); o.stop(t+0.1);
+                    o.frequency.value = 800; g.gain.value = 0.1; o.start(); o.stop(t+0.1);
                 } else {
-                    o.type = 'sawtooth'; o.frequency.value = 150; g.gain.value = 0.1; o.start(); o.stop(t+0.3);
+                    o.type = 'sawtooth'; o.frequency.value = 100; g.gain.value = 0.2; o.start(); o.stop(t+0.3);
                 }
             }
         };
+
+        app.init();
     </script>
 </body>
 </html>
